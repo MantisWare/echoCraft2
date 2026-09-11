@@ -58,6 +58,25 @@ Examples:
 EOF
 }
 
+# Finder writes .DS_Store back into a directory while rm is still walking it,
+# which leaves rm reporting the parent as non-empty. Retry instead of failing
+# the build on a race with a background process.
+remove_build_dir() {
+  local dir="$1"
+  local attempt
+
+  for attempt in 1 2 3; do
+    [[ -e "$dir" ]] || return 0
+    rm -rf "$dir" 2>/dev/null || true
+    [[ -e "$dir" ]] || return 0
+    sleep 1
+  done
+
+  echo "error: could not delete $dir/ after 3 attempts." >&2
+  echo "       Close it in Finder and quit any app running from it, then retry." >&2
+  return 1
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --arch)
@@ -123,13 +142,15 @@ if [[ ! -f .env ]]; then
 fi
 
 # The banner and the electron-builder artifact name have to agree, so the bump
-# happens here, before the version is read. npm's build:mac bumps too, for
-# anyone invoking it directly, so suppress it for the nested call below.
-export ECHOCRAFT_SKIP_VERSION_BUMP=1
-
+# happens here, before the version is read.
 if [[ -n "$BUMP" ]]; then
   node scripts/bump-version.js "$BUMP"
 fi
+
+# npm's build:mac bumps as well, for anyone invoking it directly. The bump
+# above already happened, so suppress it for the nested call further down.
+# Must stay below that call, or it would suppress this script's own bump.
+export ECHOCRAFT_SKIP_VERSION_BUMP=1
 
 VERSION="$(node -p 'require("./package.json").version')"
 
@@ -139,7 +160,8 @@ fi
 
 # Artifacts from an earlier version or target survive in dist/, so they would be
 # picked up by the listing at the end of this script and shipped by --publish.
-rm -rf dist src/dist
+remove_build_dir dist
+remove_build_dir src/dist
 
 BUILD_ARGS=()
 # shellcheck disable=SC2206 # targets are intentionally word-split into separate args
