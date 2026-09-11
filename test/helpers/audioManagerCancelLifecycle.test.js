@@ -247,11 +247,11 @@ async function loadCancelGuardManagerClass(t) {
     mockModules: {
       "/stores/settingsStore": `
         export const getSettings = () => globalThis.__streamingLeakSettings;
-        export const getEffectiveCleanupModel = () => null;
-        export const selectResolvedLLMConfig = () => ({ model: null, provider: null });
-        export const isCloudCleanupMode = () => true;
-        export const isCloudDictationAgentMode = () => false;
-        export const isCloudTranslationMode = () => false;
+        export const getEffectiveCleanupModel = () => "gpt-4.1-mini";
+        export const selectResolvedLLMConfig = () => ({
+          model: "gpt-4.1-mini",
+          provider: "openai",
+        });
       `,
       // The real store: capturing recordCleanupFailure is the whole point of
       // the streaming-fallback-leak test below, so the mock just makes its

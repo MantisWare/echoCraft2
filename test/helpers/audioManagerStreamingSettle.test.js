@@ -18,9 +18,6 @@ async function loadManager(t) {
       "/stores/settingsStore": `
         export const getSettings = () => ({});
         export const getEffectiveCleanupModel = () => null;
-        export const isCloudCleanupMode = () => false;
-        export const isCloudDictationAgentMode = () => false;
-        export const isCloudTranslationMode = () => false;
       `,
       "/services/ReasoningService": "export default { processText: async (t) => t };",
       "/services/SyncService.js": "export const syncService = {};",

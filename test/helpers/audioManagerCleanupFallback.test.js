@@ -28,9 +28,6 @@ test("cleanup failure details ride the raw result instead of notifying before pa
           provider: "bedrock",
           model: "anthropic.claude-haiku"
         });
-        export const isCloudCleanupMode = () => false;
-        export const isCloudDictationAgentMode = () => false;
-        export const isCloudTranslationMode = () => false;
         export const useSettingsStore = { subscribe: () => () => {} };
       `,
       "/dictationAgentInference": `

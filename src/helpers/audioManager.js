@@ -33,9 +33,6 @@ import {
   getSettings,
   useSettingsStore,
   getEffectiveCleanupModel,
-  isCloudCleanupMode,
-  isCloudDictationAgentMode,
-  isCloudTranslationMode,
   selectResolvedLLMConfig,
 } from "../stores/settingsStore";
 import {
@@ -151,14 +148,11 @@ function dictationAgentPrompt(settings, agentName) {
 }
 
 function dictationAgentReachable(settings) {
-  return resolveDictationAgentInference(settings, { isCloudAgent: isCloudDictationAgentMode() })
-    .reachable;
+  return resolveDictationAgentInference(settings).reachable;
 }
 
 function translationChainReachable(settings) {
-  return resolveDictationTranslationInference(settings, {
-    isCloudTranslation: isCloudTranslationMode(),
-  }).reachable;
+  return resolveDictationTranslationInference(settings).reachable;
 }
 
 function resolveReasoningRoute(
@@ -171,15 +165,9 @@ function resolveReasoningRoute(
   detectedLanguage
 ) {
   const cleanup = selectResolvedLLMConfig(settings, "dictationCleanup");
-  const cleanupReachable =
-    !!settings.useCleanupModel && (!!cleanup.model?.trim() || isCloudCleanupMode());
-  const agent = resolveDictationAgentInference(settings, {
-    isCloudAgent: isCloudDictationAgentMode(),
-  });
-
-  const translation = resolveDictationTranslationInference(settings, {
-    isCloudTranslation: isCloudTranslationMode(),
-  });
+  const cleanupReachable = !!settings.useCleanupModel && !!cleanup.model?.trim();
+  const agent = resolveDictationAgentInference(settings);
+  const translation = resolveDictationTranslationInference(settings);
 
   const kind = resolveDictationRouteKind({
     cleanupReachable,
@@ -234,15 +222,12 @@ function resolveReasoningRoute(
     };
   }
   if (kind === "agent") {
-    const vision = resolveDictationAgentVisionInference(settings, {
-      isSignedIn: settings.isSignedIn,
-    });
+    const vision = resolveDictationAgentVisionInference(settings);
     const { attach, useVisionOverride } = resolveAgentImageTarget({
       hasScreenContext: !!screenContext,
       visionOverrideActive: vision.active,
       visionProviderImageWired: providerSupportsImages(vision.config.provider),
       baseProviderImageWired: providerSupportsImages(agent.config.provider),
-      isCloudAgent: isCloudDictationAgentMode(),
       baseModelSupportsVision: !!getCloudModel(agent.model)?.supportsVision,
     });
     const target = useVisionOverride ? vision : agent;
@@ -2680,15 +2665,6 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       return false;
     }
 
-    if (s.useCleanupModel && isCloudCleanupMode()) {
-      this.reasoningAvailabilityCache = {
-        value: true,
-        expiresAt: now + REASONING_CACHE_TTL,
-      };
-      this.cachedReasoningPreference = useReasoning;
-      return true;
-    }
-
     try {
       const isAvailable = await ReasoningService.isAvailable();
 
@@ -2826,10 +2802,9 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     });
 
     const cleanupModel = getEffectiveCleanupModel();
-    const isCloud = isCloudCleanupMode();
     const settings = getSettings();
     const cleanupProvider = settings.cleanupProvider || "auto";
-    const cleanupReachable = !!settings.useCleanupModel && (!!cleanupModel || isCloud);
+    const cleanupReachable = !!settings.useCleanupModel && !!cleanupModel;
     const agentReachable = dictationAgentReachable(settings);
     const agentName =
       typeof window !== "undefined" && window.localStorage
@@ -3131,10 +3106,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     const opts = {};
     if (language) opts.language = language;
     const cleanupCloudMode = settings.cleanupCloudMode || "openwhispr";
-    if (
-      (settings.useCleanupModel && cleanupCloudMode === "openwhispr") ||
-      (this.translationRequested && translationChainReachable(settings) && isCloudTranslationMode())
-    ) {
+    if (settings.useCleanupModel && cleanupCloudMode === "openwhispr") {
       opts.sendLogs = "false";
     }
 

@@ -32,9 +32,6 @@ async function loadAudioManager(t) {
       "/stores/settingsStore": `
         export const getSettings = () => globalThis.__wakeWordSettings;
         export const getEffectiveCleanupModel = () => "cleanup-model";
-        export const isCloudCleanupMode = () => false;
-        export const isCloudDictationAgentMode = () => false;
-        export const isCloudTranslationMode = () => false;
         export const selectResolvedLLMConfig = () => ({ model: "cleanup-model" });
       `,
       "/dictationAgentInference": `
