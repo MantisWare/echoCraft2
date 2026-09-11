@@ -596,6 +596,44 @@
       ]
     },
     {
+      "id": "huggingface",
+      "name": "Hugging Face",
+      "models": [
+        {
+          "id": "openai/gpt-oss-120b",
+          "name": "GPT-OSS 120B",
+          "description": "OpenAI's open-weight flagship, routed to the fastest provider",
+          "supportsThinking": true,
+          "descriptionKey": "models.descriptions.cloud.huggingface_openai_gpt_oss_120b"
+        },
+        {
+          "id": "openai/gpt-oss-20b",
+          "name": "GPT-OSS 20B",
+          "description": "Small open-weight model, low latency and low cost",
+          "supportsThinking": true,
+          "descriptionKey": "models.descriptions.cloud.huggingface_openai_gpt_oss_20b"
+        },
+        {
+          "id": "deepseek-ai/DeepSeek-V3.2-Exp",
+          "name": "DeepSeek V3.2",
+          "description": "Strong general-purpose open model, 164K context",
+          "descriptionKey": "models.descriptions.cloud.huggingface_deepseek_v3_2_exp"
+        },
+        {
+          "id": "Qwen/Qwen3-235B-A22B-Instruct-2507",
+          "name": "Qwen3 235B",
+          "description": "Large MoE instruct model, 22B active params",
+          "descriptionKey": "models.descriptions.cloud.huggingface_qwen3_235b_a22b_instruct"
+        },
+        {
+          "id": "meta-llama/Llama-3.3-70B-Instruct",
+          "name": "Llama 3.3 70B",
+          "description": "Meta's instruction-tuned flagship, broad provider coverage",
+          "descriptionKey": "models.descriptions.cloud.huggingface_meta_llama_3_3_70b_instruct"
+        }
+      ]
+    },
+    {
       "id": "tinfoil",
       "name": "Tinfoil",
       "models": [
@@ -1234,63 +1272,6 @@
         }
       ]
     }
-  ],
-  "openwhisprCloudModels": {
-    "tiers": [
-      {
-        "id": "fast",
-        "label": "Fast",
-        "provider": "groq",
-        "models": [
-          {
-            "id": "llama-3.3-70b-versatile",
-            "name": "Llama 3.3 70B",
-            "description": "Fast, high-quality reasoning",
-            "recommended": true
-          },
-          {
-            "id": "llama-3.1-8b-instant",
-            "name": "Llama 3.1 8B",
-            "description": "Ultra-fast, low latency"
-          }
-        ]
-      },
-      {
-        "id": "balanced",
-        "label": "Balanced",
-        "provider": "openrouter",
-        "models": [
-          {
-            "id": "anthropic/claude-sonnet-4.6",
-            "name": "Claude Sonnet 4.6",
-            "description": "Balanced performance and quality",
-            "recommended": true
-          },
-          {
-            "id": "google/gemini-2.5-flash",
-            "name": "Gemini 2.5 Flash",
-            "description": "Fast with strong reasoning"
-          }
-        ]
-      },
-      {
-        "id": "quality",
-        "label": "Quality",
-        "provider": "openrouter",
-        "models": [
-          {
-            "id": "anthropic/claude-opus-4.8",
-            "name": "Claude Opus 4.8",
-            "description": "Most capable, highest quality",
-            "recommended": true
-          },
-          {
-            "id": "openai/gpt-4.1",
-            "name": "GPT-4.1",
-            "description": "Strong general-purpose reasoning"
-          }
-        ]
-      }
-    ]
-  }
+  ]
+
 }

@@ -1835,6 +1835,8 @@ declare global {
       saveGroqKey: (key: string) => Promise<void>;
       getOpenrouterKey: () => Promise<string | null>;
       saveOpenrouterKey: (key: string) => Promise<void>;
+      getHuggingfaceKey: () => Promise<string | null>;
+      saveHuggingfaceKey: (key: string) => Promise<void>;
 
       // xAI API key management
       getXaiKey?: () => Promise<string | null>;

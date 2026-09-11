@@ -913,6 +913,7 @@ export interface SettingsState
   setXaiApiKey: (key: string) => void;
   setMistralApiKey: (key: string) => void;
   setOpenrouterApiKey: (key: string) => void;
+  setHuggingfaceApiKey: (key: string) => void;
   setCortiClientId: (key: string) => void;
   setCortiClientSecret: (key: string) => void;
   setCortiApiKey: (key: string) => void;
@@ -1148,6 +1149,7 @@ const SECRET_IPC_SAVERS = {
   xai: "saveXaiKey",
   mistral: "saveMistralKey",
   openrouter: "saveOpenrouterKey",
+  huggingface: "saveHuggingfaceKey",
   cortiClientId: "saveCortiClientId",
   cortiClientSecret: "saveCortiClientSecret",
   cortiApiKey: "saveCortiKey",
@@ -1195,6 +1197,7 @@ const STALE_SECRET_LOCALSTORAGE_KEYS = [
   "xaiApiKey",
   "mistralApiKey",
   "openrouterApiKey",
+  "huggingfaceApiKey",
   "cortiClientId",
   "cortiClientSecret",
   "cortiApiKey",
@@ -1224,6 +1227,7 @@ function invalidateApiKeyCaches(
     | "tinfoil"
     | "custom"
     | "openrouter"
+    | "huggingface"
     | "corti"
 ) {
   if (provider) {
@@ -1322,6 +1326,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   xaiApiKey: "",
   mistralApiKey: "",
   openrouterApiKey: "",
+  huggingfaceApiKey: "",
   cortiClientId: "",
   cortiClientSecret: "",
   cortiApiKey: "",
@@ -1946,6 +1951,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   setXaiApiKey: createSecretSetter("xaiApiKey", "xai"),
   setMistralApiKey: createSecretSetter("mistralApiKey", "mistral", "mistral"),
   setOpenrouterApiKey: createSecretSetter("openrouterApiKey", "openrouter", "openrouter"),
+  setHuggingfaceApiKey: createSecretSetter("huggingfaceApiKey", "huggingface", "huggingface"),
   setCortiClientId: (key: string) => {
     set({ cortiClientId: key });
     debouncedSaveSecret("cortiClientId", key);
@@ -2466,6 +2472,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     if (keys.xaiApiKey !== undefined) s.setXaiApiKey(keys.xaiApiKey);
     if (keys.mistralApiKey !== undefined) s.setMistralApiKey(keys.mistralApiKey);
     if (keys.openrouterApiKey !== undefined) s.setOpenrouterApiKey(keys.openrouterApiKey);
+    if (keys.huggingfaceApiKey !== undefined) s.setHuggingfaceApiKey(keys.huggingfaceApiKey);
     if (keys.cortiClientId !== undefined) s.setCortiClientId(keys.cortiClientId);
     if (keys.cortiClientSecret !== undefined) s.setCortiClientSecret(keys.cortiClientSecret);
     if (keys.cortiApiKey !== undefined) s.setCortiApiKey(keys.cortiApiKey);
@@ -2992,6 +2999,7 @@ export async function initializeSettings(): Promise<void> {
         xai,
         mistral,
         openrouter,
+        huggingface,
         cortiClientId,
         cortiClientSecret,
         cortiApiKey,
@@ -3016,6 +3024,7 @@ export async function initializeSettings(): Promise<void> {
         window.electronAPI.getXaiKey?.(),
         window.electronAPI.getMistralKey?.(),
         window.electronAPI.getOpenrouterKey?.(),
+        window.electronAPI.getHuggingfaceKey?.(),
         window.electronAPI.getCortiClientId?.(),
         window.electronAPI.getCortiClientSecret?.(),
         window.electronAPI.getCortiKey?.(),
@@ -3042,6 +3051,7 @@ export async function initializeSettings(): Promise<void> {
         xaiApiKey: xai || "",
         mistralApiKey: mistral || "",
         openrouterApiKey: openrouter || "",
+        huggingfaceApiKey: huggingface || "",
         cortiClientId: cortiClientId || "",
         cortiClientSecret: cortiClientSecret || "",
         cortiApiKey: cortiApiKey || "",

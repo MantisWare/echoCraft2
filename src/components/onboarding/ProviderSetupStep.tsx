@@ -195,6 +195,8 @@ function providerCredential(provider: string, store: ReturnType<typeof useSettin
       return { value: store.mistralApiKey, set: store.setMistralApiKey };
     case "openrouter":
       return { value: store.openrouterApiKey, set: store.setOpenrouterApiKey };
+    case "huggingface":
+      return { value: store.huggingfaceApiKey, set: store.setHuggingfaceApiKey };
     case "tinfoil":
       return { value: store.tinfoilApiKey, set: store.setTinfoilApiKey };
     case "corti":

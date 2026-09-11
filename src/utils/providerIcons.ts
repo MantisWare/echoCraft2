@@ -19,6 +19,7 @@ import vertexIcon from "@/assets/icons/providers/vertex.svg";
 import xaiIcon from "@/assets/icons/providers/xai.svg";
 import cortiIcon from "@/assets/icons/providers/corti.svg";
 import openrouterIcon from "@/assets/icons/providers/openrouter.svg";
+import huggingfaceIcon from "@/assets/icons/providers/huggingface.svg";
 import tinfoilIcon from "@/assets/icons/providers/tinfoil.svg";
 
 export const PROVIDER_ICONS: Record<string, string> = {
@@ -41,6 +42,7 @@ export const PROVIDER_ICONS: Record<string, string> = {
   xai: xaiIcon,
   corti: cortiIcon,
   openrouter: openrouterIcon,
+  huggingface: huggingfaceIcon,
   tinfoil: tinfoilIcon,
 };
 

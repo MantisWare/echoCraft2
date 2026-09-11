@@ -122,6 +122,7 @@ export const API_ENDPOINTS = {
   GROQ_BASE: "https://api.groq.com/openai/v1",
   CORTI_MODELS_BASE: "https://ai.eu.corti.app/v1",
   OPENROUTER_BASE: "https://openrouter.ai/api/v1",
+  HUGGINGFACE_BASE: "https://router.huggingface.co/v1",
   TRANSCRIPTION_BASE: DEFAULT_TRANSCRIPTION_BASE,
   TRANSCRIPTION: buildApiUrl(DEFAULT_TRANSCRIPTION_BASE, "/audio/transcriptions"),
 } as const;

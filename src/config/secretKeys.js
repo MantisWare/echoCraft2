@@ -51,6 +51,13 @@ const BYOK_API_KEYS = [
     storeKey: "openrouterApiKey",
   },
   {
+    base: "huggingface",
+    env: "HUGGINGFACE_API_KEY",
+    get: "getHuggingfaceKey",
+    save: "saveHuggingfaceKey",
+    storeKey: "huggingfaceApiKey",
+  },
+  {
     base: "tinfoil",
     env: "TINFOIL_API_KEY",
     get: "getTinfoilKey",

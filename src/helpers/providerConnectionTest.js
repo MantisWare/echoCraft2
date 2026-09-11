@@ -6,6 +6,7 @@ const ENDPOINTS = {
   anthropic: "https://api.anthropic.com/v1/models",
   gemini: "https://generativelanguage.googleapis.com/v1beta/models",
   openrouter: "https://openrouter.ai/api/v1/models",
+  huggingface: "https://router.huggingface.co/v1/models",
   corti: "https://ai.eu.corti.app/v1/models",
   tinfoil: "https://inference.tinfoil.sh/v1/models",
 };

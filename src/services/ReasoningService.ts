@@ -56,6 +56,7 @@ const BYOK_STREAM_PROVIDERS = [
   "tinfoil",
   "custom",
   "openrouter",
+  "huggingface",
   "corti",
 ] as const;
 
@@ -169,7 +170,15 @@ class ReasoningService extends BaseReasoningService {
 
   private async getApiKey(
     provider:
-      "openai" | "anthropic" | "gemini" | "groq" | "tinfoil" | "custom" | "openrouter" | "corti"
+      | "openai"
+      | "anthropic"
+      | "gemini"
+      | "groq"
+      | "tinfoil"
+      | "custom"
+      | "openrouter"
+      | "huggingface"
+      | "corti"
   ): Promise<string> {
     if (provider === "custom") {
       let customKey = "";
@@ -208,6 +217,7 @@ class ReasoningService extends BaseReasoningService {
           gemini: () => window.electronAPI.getGeminiKey(),
           groq: () => window.electronAPI.getGroqKey(),
           openrouter: () => window.electronAPI.getOpenrouterKey(),
+          huggingface: () => window.electronAPI.getHuggingfaceKey?.(),
           tinfoil: () => window.electronAPI.getTinfoilKey?.(),
           corti: () => window.electronAPI.getCortiKey?.(),
         };
@@ -262,9 +272,11 @@ class ReasoningService extends BaseReasoningService {
     const baseURL =
       providerKey === "openrouter"
         ? API_ENDPOINTS.OPENROUTER_BASE
-        : providerKey === "custom"
-          ? resolveConfiguredOpenAIBase(providerKey, config.baseUrl)
-          : undefined;
+        : providerKey === "huggingface"
+          ? API_ENDPOINTS.HUGGINGFACE_BASE
+          : providerKey === "custom"
+            ? resolveConfiguredOpenAIBase(providerKey, config.baseUrl)
+            : undefined;
     return { apiKey, baseURL };
   }
 
@@ -1241,6 +1253,7 @@ class ReasoningService extends BaseReasoningService {
       const geminiKey = await window.electronAPI?.getGeminiKey?.();
       const groqKey = await window.electronAPI?.getGroqKey?.();
       const openrouterKey = await window.electronAPI?.getOpenrouterKey?.();
+      const huggingfaceKey = await window.electronAPI?.getHuggingfaceKey?.();
       const tinfoilKey = await window.electronAPI?.getTinfoilKey?.();
       const cortiKey = await window.electronAPI?.getCortiKey?.();
       const localAvailable = await window.electronAPI?.checkLocalReasoningAvailable?.();
@@ -1251,6 +1264,7 @@ class ReasoningService extends BaseReasoningService {
         hasGemini: !!geminiKey,
         hasGroq: !!groqKey,
         hasOpenrouter: !!openrouterKey,
+        hasHuggingface: !!huggingfaceKey,
         hasTinfoil: !!tinfoilKey,
         hasCorti: !!cortiKey,
         hasLocal: !!localAvailable,
@@ -1262,6 +1276,7 @@ class ReasoningService extends BaseReasoningService {
         geminiKey ||
         groqKey ||
         openrouterKey ||
+        huggingfaceKey ||
         tinfoilKey ||
         cortiKey ||
         localAvailable
@@ -1286,6 +1301,7 @@ class ReasoningService extends BaseReasoningService {
       | "tinfoil"
       | "custom"
       | "openrouter"
+      | "huggingface"
       | "corti"
   ): void {
     if (provider) {

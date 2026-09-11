@@ -125,13 +125,21 @@ async function detectServerType(base: string): Promise<void> {
   }
 }
 
+// Hosted OpenAI-compatible aggregators reached at a fixed base URL. They speak
+// Chat Completions only, so they skip the /responses probe, and each one
+// carries its own API key rather than borrowing the OpenAI one.
+const HOSTED_PROVIDER_BASES: Readonly<Record<string, string>> = Object.freeze({
+  openrouter: API_ENDPOINTS.OPENROUTER_BASE,
+  huggingface: API_ENDPOINTS.HUGGINGFACE_BASE,
+});
+
 export const openaiProvider: InferenceProvider = {
   id: "openai",
   supportsImages: true,
   async call({ text, model, agentName, config, ctx }) {
     const resolvedProvider = config.provider || getSettings().cleanupProvider || "";
     const isCustomProvider = resolvedProvider === "custom";
-    const isOpenRouter = resolvedProvider === "openrouter";
+    const hostedBase = HOSTED_PROVIDER_BASES[resolvedProvider];
 
     logger.logReasoning("OPENAI_START", {
       model,
@@ -144,7 +152,9 @@ export const openaiProvider: InferenceProvider = {
     const apiKey =
       overrideKey ||
       (canFallBackToSharedKey
-        ? await ctx.getApiKey(isCustomProvider ? "custom" : isOpenRouter ? "openrouter" : "openai")
+        ? await ctx.getApiKey(
+            isCustomProvider ? "custom" : hostedBase !== undefined ? resolvedProvider : "openai"
+          )
         : "");
 
     logger.logReasoning("OPENAI_API_KEY", {
@@ -179,13 +189,14 @@ export const openaiProvider: InferenceProvider = {
             { role: "user", content: userContent },
           ];
 
-    const openAiBase = isOpenRouter
-      ? API_ENDPOINTS.OPENROUTER_BASE
-      : resolveConfiguredOpenAIBase(resolvedProvider, config.baseUrl);
+    const openAiBase =
+      hostedBase !== undefined
+        ? hostedBase
+        : resolveConfiguredOpenAIBase(resolvedProvider, config.baseUrl);
     const dialect = detectEndpointDialect(openAiBase);
-    // OpenRouter and known dialect hosts speak Chat Completions only — no /responses probe needed.
+    // Hosted aggregators and known dialect hosts speak Chat Completions only — no /responses probe needed.
     let endpointCandidates: Array<{ url: string; type: "responses" | "chat" }>;
-    if (isOpenRouter || dialect) {
+    if (hostedBase !== undefined || dialect) {
       endpointCandidates = [{ url: buildApiUrl(openAiBase, "/chat/completions"), type: "chat" }];
     } else {
       await detectServerType(openAiBase);
