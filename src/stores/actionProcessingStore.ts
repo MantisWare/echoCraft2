@@ -88,7 +88,6 @@ CONTENT RULES:
 Instructions: `;
 
 export interface RunActionOptions {
-  isCloudMode: boolean;
   modelId: string;
   isMeetingNote?: boolean;
   /** Opt-in so enhancement never renames a note the user has titled. */
@@ -118,7 +117,7 @@ export function runBackgroundAction(
   if (processingFlags.get(noteId)) return;
 
   const modelId = options.modelId;
-  if (!modelId && !options.isCloudMode) {
+  if (!modelId) {
     pushErrorEvent({ noteId, message: labels.noModel });
     return;
   }
@@ -126,7 +125,7 @@ export function runBackgroundAction(
   const settings = getSettings();
   const noteFormatting = selectResolvedNoteFormatting(settings);
   // A self-hosted config without a URL would fall through to a cloud provider.
-  if (!options.isCloudMode && noteFormatting.mode === "self-hosted" && !noteFormatting.remoteUrl) {
+  if (noteFormatting.mode === "self-hosted" && !noteFormatting.remoteUrl) {
     pushErrorEvent({ noteId, message: labels.noEndpoint });
     return;
   }
@@ -138,7 +137,7 @@ export function runBackgroundAction(
   (async () => {
     try {
       const basePrompt = options.isMeetingNote ? MEETING_SYSTEM_PROMPT : BASE_SYSTEM_PROMPT;
-      const providerOverrides = buildNoteFormattingOverrides(noteFormatting, options.isCloudMode);
+      const providerOverrides = buildNoteFormattingOverrides(noteFormatting);
       const systemPrompt = appendDictionarySuffix(
         basePrompt + action.prompt,
         options.isMeetingNote ? settings.customDictionary : undefined,

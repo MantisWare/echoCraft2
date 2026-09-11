@@ -52,24 +52,6 @@ test("self-hosted is reachable with no model and forwards the LAN url", async ()
   assert.equal(result.config.customApiKey, "test-key");
 });
 
-test("cloud is reachable with no model", async () => {
-  const { resolveDictationAgentInference } = await load();
-
-  const result = resolveDictationAgentInference(
-    {
-      ...baseSettings,
-      dictationAgentMode: "openwhispr",
-      dictationAgentProvider: "openai",
-      dictationAgentModel: "",
-    },
-    { isCloudAgent: true }
-  );
-
-  assert.equal(result.reachable, true);
-  assert.equal(result.model, "");
-  assert.equal(result.config.provider, "openwhispr");
-});
-
 test("a custom provider forwards its base url and api key", async () => {
   const { resolveDictationAgentInference } = await load();
 
@@ -188,18 +170,19 @@ test("providers mode rejects a stale local provider", async () => {
   assert.equal(result.config.provider, undefined);
 });
 
-test("local mode wins over an inconsistent cloud flag", async () => {
+test("local mode wins over a stale provider id", async () => {
   const { resolveDictationAgentInference } = await load();
 
-  const result = resolveDictationAgentInference(
-    { ...baseSettings, dictationAgentMode: "local", dictationAgentProvider: "openai" },
-    { isCloudAgent: true }
-  );
+  const result = resolveDictationAgentInference({
+    ...baseSettings,
+    dictationAgentMode: "local",
+    dictationAgentProvider: "openai",
+  });
 
   assert.equal(result.config.provider, "local");
 });
 
-test("managed mode never falls through to a stale provider when signed out", async () => {
+test("the retired cloud mode never falls through to a stale provider", async () => {
   const { resolveDictationAgentInference } = await load();
 
   const result = resolveDictationAgentInference({
@@ -210,7 +193,7 @@ test("managed mode never falls through to a stale provider when signed out", asy
   });
 
   assert.equal(result.reachable, false);
-  assert.equal(result.displayProvider, "openwhispr");
+  assert.equal(result.displayProvider, "none");
   assert.equal(result.config.provider, undefined);
 });
 

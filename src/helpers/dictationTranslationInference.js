@@ -8,10 +8,7 @@ import { getManagedScopeResolution } from "../stores/enterpriseIdentityStore";
 
 // Shared by live dictation and Prompt Studio so both translation entry points
 // use the same provider, endpoint, and credentials.
-export function resolveDictationTranslationInference(
-  settings,
-  { isCloudTranslation = false } = {}
-) {
+export function resolveDictationTranslationInference(settings) {
   const managed = getManagedScopeResolution("dictationTranslation", settings.enterpriseSetupMode);
   if (managed.kind === "managed") {
     return {
@@ -34,7 +31,6 @@ export function resolveDictationTranslationInference(
   const storedProvider = settings.translationProvider?.trim() || "";
   const providerForMode = isProviderValidForMode(storedProvider, mode) ? storedProvider : undefined;
   const provider = resolveTranslationProviderId({
-    isCloudTranslation,
     translationMode: mode,
     translationProvider: providerForMode,
   });
@@ -48,7 +44,6 @@ export function resolveDictationTranslationInference(
       translationMode: mode,
       translationProvider: provider,
       translationModel: model,
-      isCloudTranslation,
       isSelfHostedTranslation: isSelfHosted,
     }),
     model,

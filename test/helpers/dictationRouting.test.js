@@ -104,22 +104,6 @@ test("skips reasoning when nothing is reachable", async () => {
   );
 });
 
-test("agent is reachable in cloud mode without an explicit model", async () => {
-  const { resolveDictationAgentReachability } = await load();
-
-  assert.equal(
-    resolveDictationAgentReachability({
-      useDictationAgent: true,
-      dictationAgentMode: "openwhispr",
-      dictationAgentProvider: undefined,
-      dictationAgentModel: "",
-      isCloudAgent: true,
-      isSelfHostedAgent: false,
-    }),
-    true
-  );
-});
-
 test("agent is reachable in self-hosted mode without an explicit model", async () => {
   const { resolveDictationAgentReachability } = await load();
 
@@ -129,7 +113,6 @@ test("agent is reachable in self-hosted mode without an explicit model", async (
       dictationAgentMode: "self-hosted",
       dictationAgentProvider: undefined,
       dictationAgentModel: "",
-      isCloudAgent: false,
       isSelfHostedAgent: true,
     }),
     true
@@ -145,7 +128,6 @@ test("agent is unreachable with an empty model on a model-required provider", as
       dictationAgentMode: "providers",
       dictationAgentProvider: "openai",
       dictationAgentModel: "   ",
-      isCloudAgent: false,
       isSelfHostedAgent: false,
     }),
     false
@@ -161,7 +143,6 @@ test("agent is reachable with an explicit model (BYOK/local/enterprise)", async 
       dictationAgentMode: "providers",
       dictationAgentProvider: "openai",
       dictationAgentModel: "gpt-5.5",
-      isCloudAgent: false,
       isSelfHostedAgent: false,
     }),
     true
@@ -174,10 +155,9 @@ test("disabling the dictation agent overrides cloud reachability", async () => {
   assert.equal(
     resolveDictationAgentReachability({
       useDictationAgent: false,
-      dictationAgentMode: "openwhispr",
+      dictationAgentMode: "self-hosted",
       dictationAgentProvider: undefined,
       dictationAgentModel: "",
-      isCloudAgent: true,
       isSelfHostedAgent: true,
     }),
     false
@@ -273,10 +253,9 @@ test("translation is unreachable when disabled", async () => {
     resolveDictationTranslationReachability({
       useDictationTranslation: false,
       translationTargetLanguage: "it",
-      translationMode: "openwhispr",
-      translationProvider: undefined,
+      translationMode: "providers",
+      translationProvider: "openai",
       translationModel: "gpt-5-mini",
-      isCloudTranslation: true,
       isSelfHostedTranslation: false,
     }),
     false
@@ -290,30 +269,12 @@ test("translation is unreachable without a target language", async () => {
     resolveDictationTranslationReachability({
       useDictationTranslation: true,
       translationTargetLanguage: "   ",
-      translationMode: "openwhispr",
-      translationProvider: undefined,
+      translationMode: "providers",
+      translationProvider: "openai",
       translationModel: "gpt-5-mini",
-      isCloudTranslation: true,
       isSelfHostedTranslation: false,
     }),
     false
-  );
-});
-
-test("translation is reachable in cloud mode without an explicit model", async () => {
-  const { resolveDictationTranslationReachability } = await load();
-
-  assert.equal(
-    resolveDictationTranslationReachability({
-      useDictationTranslation: true,
-      translationTargetLanguage: "it",
-      translationMode: "openwhispr",
-      translationProvider: undefined,
-      translationModel: "",
-      isCloudTranslation: true,
-      isSelfHostedTranslation: false,
-    }),
-    true
   );
 });
 
@@ -327,7 +288,6 @@ test("translation is reachable in self-hosted mode without an explicit model", a
       translationMode: "self-hosted",
       translationProvider: undefined,
       translationModel: "",
-      isCloudTranslation: false,
       isSelfHostedTranslation: true,
     }),
     true
@@ -344,7 +304,6 @@ test("translation needs a model on model-required providers", async () => {
       translationMode: "providers",
       translationProvider: "openai",
       translationModel: "  ",
-      isCloudTranslation: false,
       isSelfHostedTranslation: false,
     }),
     false
@@ -357,23 +316,9 @@ test("translation needs a model on model-required providers", async () => {
       translationMode: "providers",
       translationProvider: "openai",
       translationModel: "qwen3:8b",
-      isCloudTranslation: false,
       isSelfHostedTranslation: false,
     }),
     true
-  );
-});
-
-test("available managed mode resolves the OpenWhispr provider", async () => {
-  const { resolveDictationAgentProvider } = await load();
-
-  assert.equal(
-    resolveDictationAgentProvider({
-      isCloudAgent: true,
-      dictationAgentMode: "openwhispr",
-      dictationAgentProvider: "anthropic",
-    }),
-    "openwhispr"
   );
 });
 
@@ -382,7 +327,6 @@ test("local mode resolves the local provider, not stale provider state", async (
 
   assert.equal(
     resolveDictationAgentProvider({
-      isCloudAgent: false,
       dictationAgentMode: "local",
       dictationAgentProvider: "qwen",
     }),
@@ -395,7 +339,6 @@ test("BYOK providers mode passes the stored provider through", async () => {
 
   assert.equal(
     resolveDictationAgentProvider({
-      isCloudAgent: false,
       dictationAgentMode: "providers",
       dictationAgentProvider: "anthropic",
     }),
@@ -408,7 +351,6 @@ test("blank stored provider resolves to undefined outside local mode", async () 
 
   assert.equal(
     resolveDictationAgentProvider({
-      isCloudAgent: false,
       dictationAgentMode: "providers",
       dictationAgentProvider: "  ",
     }),
@@ -416,12 +358,11 @@ test("blank stored provider resolves to undefined outside local mode", async () 
   );
 });
 
-test("managed mode fails closed when its cloud session is unavailable", async () => {
+test("a retired mode fails closed instead of using a stale provider", async () => {
   const { resolveDictationAgentProvider } = await load();
 
   assert.equal(
     resolveDictationAgentProvider({
-      isCloudAgent: false,
       dictationAgentMode: "openwhispr",
       dictationAgentProvider: "openai",
     }),
@@ -434,7 +375,6 @@ test("local mode wins over an inconsistent cloud flag", async () => {
 
   assert.equal(
     resolveDictationAgentProvider({
-      isCloudAgent: true,
       dictationAgentMode: "local",
       dictationAgentProvider: "openai",
     }),
@@ -447,7 +387,6 @@ test("self-hosted mode clears stale providers", async () => {
 
   assert.equal(
     resolveDictationAgentProvider({
-      isCloudAgent: false,
       dictationAgentMode: "self-hosted",
       dictationAgentProvider: "openai",
     }),
@@ -464,7 +403,6 @@ test("self-hosted mode is unreachable without its endpoint", async () => {
       dictationAgentMode: "self-hosted",
       dictationAgentProvider: undefined,
       dictationAgentModel: "gpt-5-mini",
-      isCloudAgent: false,
       isSelfHostedAgent: false,
     }),
     false
@@ -481,8 +419,7 @@ test("provider and enterprise modes require an explicit provider", async () => {
         dictationAgentMode,
         dictationAgentProvider: undefined,
         dictationAgentModel: "gpt-5-mini",
-        isCloudAgent: false,
-        isSelfHostedAgent: false,
+          isSelfHostedAgent: false,
       }),
       false
     );
@@ -508,19 +445,6 @@ test("display provider follows the active mode instead of stale state", async ()
   );
 });
 
-test("translation provider: available managed mode routes to openwhispr", async () => {
-  const { resolveTranslationProviderId } = await load();
-
-  assert.equal(
-    resolveTranslationProviderId({
-      isCloudTranslation: true,
-      translationMode: "openwhispr",
-      translationProvider: "openai",
-    }),
-    "openwhispr"
-  );
-});
-
 test("translation provider: mode wins over stale provider and cloud state", async () => {
   const { resolveTranslationProviderId } = await load();
 
@@ -532,7 +456,6 @@ test("translation provider: mode wins over stale provider and cloud state", asyn
   ]) {
     assert.equal(
       resolveTranslationProviderId({
-        isCloudTranslation: translationMode === "local",
         translationMode,
         translationProvider,
       }),
@@ -546,7 +469,6 @@ test("translation provider: empty local provider routes to llama.cpp", async () 
 
   assert.equal(
     resolveTranslationProviderId({
-      isCloudTranslation: false,
       translationMode: "local",
       translationProvider: "",
     }),
@@ -560,7 +482,6 @@ test("translation provider: incomplete managed and provider modes fail closed", 
   for (const translationMode of ["openwhispr", "providers", "enterprise"]) {
     assert.equal(
       resolveTranslationProviderId({
-        isCloudTranslation: false,
         translationMode,
         translationProvider: "  ",
       }),
@@ -575,7 +496,6 @@ const imageTarget = {
   visionOverrideActive: false,
   visionProviderImageWired: false,
   baseProviderImageWired: true,
-  isCloudAgent: false,
   baseModelSupportsVision: false,
 };
 
@@ -588,20 +508,10 @@ test("no captured screenshot never attaches", async () => {
       hasScreenContext: false,
       visionOverrideActive: true,
       visionProviderImageWired: true,
-      isCloudAgent: true,
       baseModelSupportsVision: true,
     }),
     { attach: false, useVisionOverride: false }
   );
-});
-
-test("cloud agent attaches to the base model (server picks the vision model)", async () => {
-  const { resolveAgentImageTarget } = await load();
-
-  assert.deepEqual(resolveAgentImageTarget({ ...imageTarget, isCloudAgent: true }), {
-    attach: true,
-    useVisionOverride: false,
-  });
 });
 
 test("BYOK base model attaches only when the registry marks it vision-capable", async () => {
@@ -624,7 +534,6 @@ test("an unwired base provider never gets the image", async () => {
     resolveAgentImageTarget({
       ...imageTarget,
       baseProviderImageWired: false,
-      isCloudAgent: true,
       baseModelSupportsVision: true,
     }),
     { attach: false, useVisionOverride: false }
@@ -669,7 +578,6 @@ test("an override on a provider that can't send images drops the screenshot", as
       ...imageTarget,
       visionOverrideActive: true,
       visionProviderImageWired: false,
-      isCloudAgent: true,
     }),
     { attach: false, useVisionOverride: false }
   );

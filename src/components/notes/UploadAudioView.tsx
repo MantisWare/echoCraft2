@@ -44,7 +44,6 @@ import {
 } from "../../models/ModelRegistry";
 import {
   useSettingsStore,
-  selectIsCloudCleanupMode,
   selectPolicyEffectiveSettings,
   selectResolvedUploadTranscription,
   getSettings,
@@ -290,13 +289,9 @@ export default function UploadAudioView({ onNoteCreated, onOpenSettings }: Uploa
   const cortiEnvironment = useSettingsStore((s) => s.cortiEnvironment);
   const cortiTenant = useSettingsStore((s) => s.cortiTenant);
   const preferredLanguage = useSettingsStore((s) => s.preferredLanguage);
-  const isCloudCleanup = useSettingsStore((settings) =>
-    selectIsCloudCleanupMode(selectPolicyEffectiveSettings(settings, policyState))
+  const effectiveCleanupModel = useSettingsStore(
+    (settings) => selectPolicyEffectiveSettings(settings, policyState).cleanupModel
   );
-  const effectiveCleanupModel = useSettingsStore((settings) => {
-    const effectiveSettings = selectPolicyEffectiveSettings(settings, policyState);
-    return selectIsCloudCleanupMode(effectiveSettings) ? "" : effectiveSettings.cleanupModel;
-  });
   const useCleanupModel = useSettingsStore((s) => s.useCleanupModel);
 
   const isOpenWhisprCloud =
@@ -509,8 +504,8 @@ export default function UploadAudioView({ onNoteCreated, onOpenSettings }: Uploa
   const generateTitle = async (text: string): Promise<string> => {
     if (!useCleanupModel) return "";
     if (!getSettings().autoGenerateNoteTitle) return "";
-    const model = isCloudCleanup ? "" : effectiveCleanupModel || getAllReasoningModels()[0]?.value;
-    if (!model && !isCloudCleanup) return "";
+    const model = effectiveCleanupModel || getAllReasoningModels()[0]?.value;
+    if (!model) return "";
     return generateNoteTitle(text, model);
   };
 

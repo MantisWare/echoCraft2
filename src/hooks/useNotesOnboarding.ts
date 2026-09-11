@@ -1,10 +1,6 @@
 import { useState, useCallback } from "react";
 import { useShallow } from "zustand/react/shallow";
-import {
-  selectIsCloudCleanupMode,
-  selectPolicyEffectiveSettings,
-  useSettingsStore,
-} from "../stores/settingsStore";
+import { selectPolicyEffectiveSettings, useSettingsStore } from "../stores/settingsStore";
 import { usePolicySnapshot } from "./usePolicy";
 
 interface UseNotesOnboardingReturn {
@@ -21,13 +17,12 @@ export function useNotesOnboarding(): UseNotesOnboardingReturn {
   const isProUser = false;
   const isProLoading = false;
   const policyState = usePolicySnapshot();
-  const { useCleanupModel, effectiveModel, isCloudCleanup } = useSettingsStore(
+  const { useCleanupModel, effectiveModel } = useSettingsStore(
     useShallow((settings) => {
       const effective = selectPolicyEffectiveSettings(settings, policyState);
       return {
         useCleanupModel: effective.useCleanupModel,
         effectiveModel: effective.cleanupModel,
-        isCloudCleanup: selectIsCloudCleanupMode(effective),
       };
     })
   );
@@ -36,7 +31,7 @@ export function useNotesOnboarding(): UseNotesOnboardingReturn {
     () => localStorage.getItem("notesOnboardingComplete") === "true"
   );
 
-  const isLLMConfigured = isCloudCleanup || (useCleanupModel && !!effectiveModel);
+  const isLLMConfigured = useCleanupModel && !!effectiveModel;
 
   const complete = useCallback(() => {
     localStorage.setItem("notesOnboardingComplete", "true");

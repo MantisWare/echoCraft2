@@ -89,24 +89,7 @@ test("self-hosted mode without an endpoint never falls through to cloud inferenc
   assert.equal(result.config.lanUrl, undefined);
 });
 
-test("available managed mode resolves OpenWhispr without requiring a model", async () => {
-  const { resolveDictationTranslationInference } = await load();
-
-  const result = resolveDictationTranslationInference(
-    {
-      ...baseSettings,
-      translationMode: "openwhispr",
-      translationModel: "",
-    },
-    { isCloudTranslation: true }
-  );
-
-  assert.equal(result.reachable, true);
-  assert.equal(result.displayProvider, "openwhispr");
-  assert.equal(result.config.provider, "openwhispr");
-});
-
-test("managed mode never falls through to a stale provider when signed out", async () => {
+test("the retired cloud mode never falls through to a stale provider", async () => {
   const { resolveDictationTranslationInference } = await load();
 
   const result = resolveDictationTranslationInference({
@@ -116,7 +99,7 @@ test("managed mode never falls through to a stale provider when signed out", asy
   });
 
   assert.equal(result.reachable, false);
-  assert.equal(result.displayProvider, "openwhispr");
+  assert.equal(result.displayProvider, "none");
   assert.equal(result.config.provider, undefined);
 });
 

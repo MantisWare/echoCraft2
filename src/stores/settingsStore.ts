@@ -2494,31 +2494,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
 
 // --- Selectors (derived state, not stored) ---
 
-export const selectIsCloudCleanupMode = (state: SettingsState) =>
-  state.isSignedIn && state.cleanupMode === "openwhispr" && state.cleanupCloudMode === "openwhispr";
-
-export const selectEffectiveCleanupProvider = (state: SettingsState) =>
-  selectIsCloudCleanupMode(state) ? "openwhispr" : state.cleanupProvider;
-
-export const selectIsCloudChatAgentMode = (state: SettingsState) =>
-  state.isSignedIn &&
-  state.chatAgentMode === "openwhispr" &&
-  state.chatAgentCloudMode === "openwhispr";
-
-export const selectIsCloudDictationAgentMode = (state: SettingsState) =>
-  state.isSignedIn &&
-  state.dictationAgentMode === "openwhispr" &&
-  state.dictationAgentCloudMode === "openwhispr";
-
-export const selectIsCloudTranslationMode = (state: SettingsState) =>
-  state.isSignedIn &&
-  state.translationMode === "openwhispr" &&
-  state.translationCloudMode === "openwhispr";
-
-export const selectIsCloudNoteFormattingMode = (state: SettingsState) => {
-  const cfg = selectResolvedNoteFormatting(state);
-  return state.isSignedIn && cfg.mode === "openwhispr" && cfg.cloudMode === "openwhispr";
-};
+export const selectEffectiveCleanupProvider = (state: SettingsState) => state.cleanupProvider;
 
 export interface ResolvedMeetingTranscription {
   useLocalWhisper: boolean;
@@ -2714,10 +2690,6 @@ export function setResolvedLLMConfig(
     (updates as Record<string, unknown>)[storeKey as string] = value;
   }
   if (Object.keys(updates).length > 0) useSettingsStore.setState(updates);
-}
-
-export function isCloudChatAgentMode() {
-  return selectIsCloudChatAgentMode(getSettings());
 }
 
 // --- Convenience getters for non-React code ---
@@ -2934,23 +2906,7 @@ export function reconcileRetiredCloudModelSelections(): void {
 }
 
 export function getEffectiveCleanupModel() {
-  const state = getSettings();
-  if (selectIsCloudCleanupMode(state)) {
-    return "";
-  }
-  return selectResolvedLLMConfig(state, "dictationCleanup").model;
-}
-
-export function isCloudCleanupMode() {
-  return selectIsCloudCleanupMode(getSettings());
-}
-
-export function isCloudDictationAgentMode() {
-  return selectIsCloudDictationAgentMode(getSettings());
-}
-
-export function isCloudTranslationMode() {
-  return selectIsCloudTranslationMode(getSettings());
+  return selectResolvedLLMConfig(getSettings(), "dictationCleanup").model;
 }
 
 // --- Initialization ---

@@ -17,7 +17,7 @@ import { inheritsFallbackEndpoint } from "./reasoningRouting.js";
 // Callers must add `systemPrompt` to the config: ReasoningService treats a
 // missing one as its cleanup path, which echoes the input back instead of
 // running the instruction.
-export function resolveDictationAgentInference(settings, { isCloudAgent = false } = {}) {
+export function resolveDictationAgentInference(settings) {
   const managed = getManagedScopeResolution("dictationAgent", settings.enterpriseSetupMode);
   if (managed.kind === "managed") {
     return {
@@ -39,7 +39,6 @@ export function resolveDictationAgentInference(settings, { isCloudAgent = false 
     ? storedProvider
     : undefined;
   const provider = resolveDictationAgentProvider({
-    isCloudAgent,
     dictationAgentMode: settings.dictationAgentMode,
     dictationAgentProvider: providerForMode,
   });
@@ -51,7 +50,6 @@ export function resolveDictationAgentInference(settings, { isCloudAgent = false 
       dictationAgentMode: settings.dictationAgentMode,
       dictationAgentProvider: provider,
       dictationAgentModel: model,
-      isCloudAgent,
       isSelfHostedAgent: isSelfHosted,
     }),
     model,
@@ -76,19 +74,17 @@ export function resolveDictationAgentInference(settings, { isCloudAgent = false 
 // unset fields inherit the agent's own config, and treated as "active" only
 // once the user has actually chosen a target — an inherited config is the
 // agent scope, which the base routing rules already cover.
-export function resolveDictationAgentVisionInference(settings, { isSignedIn = false } = {}) {
+export function resolveDictationAgentVisionInference(settings) {
   const resolved = selectResolvedLLMConfig(settings, "dictationAgentVision");
   const mode = resolved.mode;
-  const isCloud = isSignedIn && mode === "openwhispr" && resolved.cloudMode === "openwhispr";
   const model = resolved.model?.trim() || "";
   const storedProvider = resolved.provider?.trim() || "";
   const providerForMode = isProviderValidForMode(storedProvider, mode) ? storedProvider : undefined;
-  const provider = resolveModeProvider({ isCloud, mode, provider: providerForMode });
+  const provider = resolveModeProvider({ mode, provider: providerForMode });
   const isCustom = mode === "providers" && provider === "custom";
 
-  // Cloud needs no model of its own, so selecting it counts as a choice;
-  // otherwise the user must have picked a model for this scope specifically.
-  const chosen = isCloud || !!settings.dictationAgentVisionModel?.trim();
+  // The user must have picked a model for this scope specifically.
+  const chosen = !!settings.dictationAgentVisionModel?.trim();
 
   // The endpoint falls back to the agent scope, so the key that opens it must
   // too — an inherited endpoint with only the vision key (or none) would call
@@ -105,9 +101,8 @@ export function resolveDictationAgentVisionInference(settings, { isSignedIn = fa
     active:
       !!settings.useDictationAgentVisionModel &&
       chosen &&
-      resolveModeReachability({ mode, provider, model, isCloud, isSelfHosted: false }),
-    // Cloud picks the model server-side from its vision chain.
-    model: isCloud ? "" : model,
+      resolveModeReachability({ mode, provider, model, isSelfHosted: false }),
+    model,
     config: {
       // The vision override is the agent's image lane: policy and managed
       // enforcement must judge it as the agent scope, not dictation cleanup.

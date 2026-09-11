@@ -1,17 +1,7 @@
 // Provider overrides for note-formatting ReasoningService.processText calls.
 // Self-hosted must forward remoteUrl as lanUrl — without it, processText
 // would use the dictation-cleanup scope instead of this scope's endpoint.
-export function buildNoteFormattingOverrides(noteFormatting, isCloudMode) {
-  if (isCloudMode) {
-    return {
-      inferenceScope: /** @type {const} */ ("noteFormatting"),
-      provider: "openwhispr",
-      baseUrl: undefined,
-      customApiKey: undefined,
-      lanUrl: undefined,
-    };
-  }
-
+export function buildNoteFormattingOverrides(noteFormatting) {
   const mode = noteFormatting?.mode;
 
   if (mode === "self-hosted") {

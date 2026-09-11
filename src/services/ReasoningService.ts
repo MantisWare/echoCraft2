@@ -11,7 +11,7 @@ import { SecureCache } from "../utils/SecureCache";
 import { withRetry, createApiRetryStrategy, httpError } from "../utils/retry";
 import { API_ENDPOINTS, TOKEN_LIMITS, buildApiUrl, ensureV1Suffix } from "../config/constants";
 import logger from "../utils/logger";
-import { getSettings, isCloudCleanupMode } from "../stores/settingsStore";
+import { getSettings } from "../stores/settingsStore";
 import { wrapCleanupTranscript } from "../config/prompts";
 import { stripThinkingTags } from "../helpers/stripThinking.js";
 import { getLlmRequestTimeoutSeconds } from "../helpers/llmRequestTimeout.js";
@@ -1206,11 +1206,6 @@ class ReasoningService extends BaseReasoningService {
         "managed"
       ) {
         logger.logReasoning("API_KEY_CHECK", { managedEnterprise: true });
-        return true;
-      }
-
-      if (isCloudCleanupMode()) {
-        logger.logReasoning("API_KEY_CHECK", { cloudCleanupMode: true });
         return true;
       }
 
