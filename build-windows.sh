@@ -22,7 +22,6 @@ cd "$ROOT_DIR"
 
 ARCH=""
 TARGETS="nsis"
-BUMP=""
 PUBLISH="never"
 SIGNED="false"
 INSTALL="false"
@@ -36,8 +35,6 @@ Options:
   --arch <x64|arm64>            Target architecture (default: host architecture)
   --targets "<list>"            electron-builder win targets
                                 (default: "nsis"; also "portable")
-  --bump <patch|minor|major|X.Y.Z>
-                                Bump the version in package.json before building (no git tag)
   --signed                      Sign with Azure Trusted Signing from electron-builder.json.
                                 Requires AZURE_TENANT_ID, AZURE_CLIENT_ID and
                                 AZURE_CLIENT_SECRET. Default is an unsigned local build.
@@ -52,8 +49,10 @@ Options:
 
 Examples:
   ./build-windows.sh                          # unsigned NSIS installer
-  ./build-windows.sh --bump patch
   ./build-windows.sh --targets "nsis portable"
+
+The version is not bumped here. Only ./build-macos.sh bumps it, so all three
+platforms ship the same build number; run that first to cut a new version.
 EOF
 }
 
@@ -67,11 +66,6 @@ while [[ $# -gt 0 ]]; do
     --targets)
       TARGETS="${2:-}"
       [[ -n "$TARGETS" ]] || { echo "error: --targets needs a value" >&2; exit 1; }
-      shift 2
-      ;;
-    --bump)
-      BUMP="${2:-}"
-      [[ -n "$BUMP" ]] || { echo "error: --bump needs a value" >&2; exit 1; }
       shift 2
       ;;
     --signed) SIGNED="true"; shift ;;
@@ -134,10 +128,8 @@ if [[ ! -f .env ]]; then
   touch .env
 fi
 
-if [[ "$BUMP" != "" ]]; then
-  npm version "$BUMP" --no-git-tag-version >/dev/null
-fi
-
+# Packages whatever version macOS last built, so one release carries one
+# version across all three platforms.
 VERSION="$(node -p 'require("./package.json").version')"
 
 if [[ "$INSTALL" == "true" ]]; then

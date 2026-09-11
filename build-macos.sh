@@ -16,7 +16,7 @@ cd "$ROOT_DIR"
 
 ARCH=""
 TARGETS="dmg"
-BUMP=""
+BUMP="patch"
 PUBLISH="never"
 SIGNED="false"
 INSTALL="false"
@@ -30,7 +30,10 @@ Options:
   --arch <arm64|x64|universal>  Target architecture (default: host architecture)
   --targets "<list>"            electron-builder mac targets (default: "dmg", e.g. "dmg zip")
   --bump <patch|minor|major|X.Y.Z>
-                                Bump the version in package.json before building (no git tag)
+                                Version bump applied before building, no git tag
+                                (default: patch). macOS is the only platform that
+                                bumps; Windows and Linux builds reuse this version.
+  --no-bump                     Build the current version without bumping it
   --signed                      Sign and notarize with the release identity from
                                 electron-builder.json. Requires the "Gizmo Labs Inc."
                                 Developer ID cert in the keychain plus notarization
@@ -47,8 +50,9 @@ Options:
   -h, --help                    Show this help
 
 Examples:
-  ./build-macos.sh                          # unsigned DMG for this Mac
-  ./build-macos.sh --bump patch             # 1.9.2 -> 1.9.3, then build
+  ./build-macos.sh                          # 2.0.2 -> 2.0.3, then unsigned DMG
+  ./build-macos.sh --no-bump                # rebuild 2.0.2 as-is
+  ./build-macos.sh --bump minor             # 2.0.2 -> 2.1.0, then build
   ./build-macos.sh --arch x64               # Intel DMG
   ./build-macos.sh --targets "dmg zip" --signed
 EOF
@@ -71,6 +75,7 @@ while [[ $# -gt 0 ]]; do
       [[ -n "$BUMP" ]] || { echo "error: --bump needs a value" >&2; exit 1; }
       shift 2
       ;;
+    --no-bump) BUMP=""; shift ;;
     --signed) SIGNED="true"; shift ;;
     --publish) PUBLISH="always"; shift ;;
     --install) INSTALL="true"; shift ;;
@@ -117,8 +122,13 @@ if [[ ! -f .env ]]; then
   touch .env
 fi
 
-if [[ "$BUMP" != "" ]]; then
-  npm version "$BUMP" --no-git-tag-version >/dev/null
+# The banner and the electron-builder artifact name have to agree, so the bump
+# happens here, before the version is read. npm's build:mac bumps too, for
+# anyone invoking it directly, so suppress it for the nested call below.
+export ECHOCRAFT_SKIP_VERSION_BUMP=1
+
+if [[ -n "$BUMP" ]]; then
+  node scripts/bump-version.js "$BUMP"
 fi
 
 VERSION="$(node -p 'require("./package.json").version')"
