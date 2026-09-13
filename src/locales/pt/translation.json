@@ -3215,7 +3215,6 @@
     "dictionary": "Dicionário",
     "referral": "Ganhe um mês grátis",
     "settings": "Configurações",
-    "support": "Suporte",
     "limitReached": "Limite semanal atingido",
     "limitReachedDescription": "Faça upgrade para Pro para transcrições ilimitadas.",
     "viewPlans": "Ver planos",
@@ -3253,12 +3252,6 @@
     "searchTitle": "Pesquisar conversas",
     "searchDescription": "Pesquisar em todas as conversas",
     "newChatEmpty": "Pergunte sobre suas notas, transcrições ou qualquer coisa"
-  },
-  "support": {
-    "documentation": "Documentação",
-    "joinDiscord": "Entrar no Discord",
-    "contactSupport": "Contatar suporte",
-    "submitBug": "Reportar um bug"
   },
   "postMigration": {
     "title": "Bem-vindo de volta ao EchoCraft",

@@ -3215,7 +3215,6 @@
     "dictionary": "词典",
     "referral": "获取免费一个月",
     "settings": "设置",
-    "support": "支持",
     "limitReached": "已达每周上限",
     "limitReachedDescription": "升级到 Pro 即可无限转录。",
     "viewPlans": "查看套餐",
@@ -3253,12 +3252,6 @@
     "searchTitle": "搜索对话",
     "searchDescription": "搜索所有对话",
     "newChatEmpty": "询问关于笔记、转录或其他任何内容"
-  },
-  "support": {
-    "documentation": "文档",
-    "joinDiscord": "加入 Discord",
-    "contactSupport": "联系支持",
-    "submitBug": "提交 Bug"
   },
   "postMigration": {
     "title": "欢迎回到 EchoCraft",

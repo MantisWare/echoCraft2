@@ -3215,7 +3215,6 @@
     "dictionary": "辞書",
     "referral": "1か月無料を取得",
     "settings": "設定",
-    "support": "サポート",
     "limitReached": "週間の利用上限に達しました",
     "limitReachedDescription": "Pro にアップグレードして無制限の文字起こしをご利用ください。",
     "viewPlans": "プランを見る",
@@ -3253,12 +3252,6 @@
     "searchTitle": "会話を検索",
     "searchDescription": "すべての会話を検索",
     "newChatEmpty": "ノートや文字起こし、その他なんでも聞いてください"
-  },
-  "support": {
-    "documentation": "ドキュメント",
-    "joinDiscord": "Discord に参加",
-    "contactSupport": "サポートに問い合わせ",
-    "submitBug": "バグを報告"
   },
   "postMigration": {
     "title": "EchoCraft へおかえりなさい",

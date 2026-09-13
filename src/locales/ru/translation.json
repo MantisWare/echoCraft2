@@ -3243,7 +3243,6 @@
     "dictionary": "Словарь",
     "referral": "Получить бесплатный месяц",
     "settings": "Настройки",
-    "support": "Поддержка",
     "limitReached": "Недельный лимит достигнут",
     "limitReachedDescription": "Перейдите на Pro для безлимитных транскрипций.",
     "viewPlans": "Посмотреть тарифы",
@@ -3281,12 +3280,6 @@
     "searchTitle": "Поиск бесед",
     "searchDescription": "Поиск по всем беседам",
     "newChatEmpty": "Спросите о заметках, транскрипциях или о чём угодно"
-  },
-  "support": {
-    "documentation": "Документация",
-    "joinDiscord": "Присоединиться к Discord",
-    "contactSupport": "Связаться с поддержкой",
-    "submitBug": "Сообщить об ошибке"
   },
   "postMigration": {
     "title": "С возвращением в EchoCraft",

@@ -2718,7 +2718,6 @@
     "dictionary": "Wörterbuch",
     "referral": "Gratis-Monat erhalten",
     "settings": "Einstellungen",
-    "support": "Support",
     "limitReached": "Wochenlimit erreicht",
     "limitReachedDescription": "Upgraden Sie auf Pro für unbegrenzte Transkriptionen.",
     "viewPlans": "Tarife ansehen",
@@ -3418,12 +3417,6 @@
     "addFirstWord": "Füge dein erstes Wort hinzu",
     "importList": "Liste importieren",
     "agentDefault": "Standardmäßig enthalten"
-  },
-  "support": {
-    "documentation": "Dokumentation",
-    "joinDiscord": "Discord beitreten",
-    "contactSupport": "Support kontaktieren",
-    "submitBug": "Fehler melden"
   },
   "postMigration": {
     "title": "Willkommen zurück bei EchoCraft",

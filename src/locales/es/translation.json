@@ -3263,7 +3263,6 @@
     "dictionary": "Diccionario",
     "referral": "Obtener un mes gratis",
     "settings": "Configuración",
-    "support": "Soporte",
     "limitReached": "Límite semanal alcanzado",
     "limitReachedDescription": "Mejora a Pro para transcripciones ilimitadas.",
     "viewPlans": "Ver planes",
@@ -3301,12 +3300,6 @@
     "searchTitle": "Buscar conversaciones",
     "searchDescription": "Buscar en todas tus conversaciones",
     "newChatEmpty": "Pregunta sobre tus notas, transcripciones o lo que quieras"
-  },
-  "support": {
-    "documentation": "Documentación",
-    "joinDiscord": "Unirse a Discord",
-    "contactSupport": "Contactar soporte",
-    "submitBug": "Reportar un error"
   },
   "postMigration": {
     "title": "Te damos la bienvenida de nuevo a EchoCraft",

@@ -10,7 +10,6 @@ import {
   Lock,
   Settings,
   ShieldCheck,
-  HelpCircle,
   UserCircle,
   X,
   Search,
@@ -19,7 +18,6 @@ import {
 import logoIcon from "../assets/icon.png";
 import { useTranslation } from "react-i18next";
 import { cn } from "./lib/utils";
-import SupportDropdown from "./ui/SupportDropdown";
 import { ACCOUNT_UI_ENABLED } from "../config/accountFeatures";
 import { getCachedPlatform } from "../utils/platform";
 import type { UpsellDecision } from "../lib/upsell";
@@ -264,15 +262,6 @@ export default function ControlPanelSidebar({
           <Settings size={15} className={rowIconClass} />
           <span className={rowLabelClass}>{t("sidebar.settings")}</span>
         </button>
-
-        <SupportDropdown
-          trigger={
-            <button aria-label={t("sidebar.support")} className={rowButtonClass}>
-              <HelpCircle size={15} className={rowIconClass} />
-              <span className={rowLabelClass}>{t("sidebar.support")}</span>
-            </button>
-          }
-        />
 
         {ACCOUNT_UI_ENABLED && (
           <>
