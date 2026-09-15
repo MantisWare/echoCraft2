@@ -1884,6 +1884,13 @@
         "disableAllDescription": "Silenciar tudo exceto mensagens de erro",
         "meetingDetection": "Detecção de reuniões",
         "meetingDetectionDescription": "Notificar quando uma reunião for detectada para iniciar a gravação",
+        "ignoredApps": "Aplicativos ignorados",
+        "ignoredAppsDescription": "O uso do microfone por esses aplicativos nunca conta como uma reunião. Adicione um se ele provocar detecções falsas.",
+        "ignoredAppsPlaceholder": "Escolher um aplicativo",
+        "ignoredAppsNoneSeen": "Nenhum aplicativo detectado ainda",
+        "ignoredAppsAdd": "Adicionar",
+        "ignoredAppsEmpty": "Nenhum aplicativo está sendo ignorado.",
+        "ignoredAppsRemove": "Parar de ignorar {{app}}",
         "calendarReminders": "Lembretes do calendário",
         "calendarRemindersDescription": "Notificar quando uma reunião agendada está prestes a começar",
         "updates": "Atualizações do app",
@@ -3874,11 +3881,13 @@
     "title": "Reunião detectada",
     "body": {
       "detected": "Parece que você está em uma reunião. Quer fazer anotações?",
+      "detectedApp": "Parece que você está em uma reunião no {{app}}. Quer tomar notas?",
       "starting": "Sua reunião está começando. Quer fazer anotações?",
       "underway": "Parece que sua reunião já está em andamento. Quer fazer anotações?"
     },
     "start": "Fazer anotações",
     "join": "Entrar e transcrever",
+    "ignoreApp": "Nunca para {{app}}",
     "autoEnd": {
       "title": "Gravação da reunião encerrada",
       "body": {

@@ -2194,6 +2194,13 @@
         "disableAllDescription": "Alles stummschalten außer Fehlermeldungen",
         "meetingDetection": "Meeting-Erkennung",
         "meetingDetectionDescription": "Benachrichtigen, wenn ein Meeting erkannt wird, um die Aufnahme zu starten",
+        "ignoredApps": "Ignorierte Apps",
+        "ignoredAppsDescription": "Mikrofonnutzung durch diese Apps gilt nie als Meeting. Füge eine App hinzu, wenn sie ständig Fehlerkennungen auslöst.",
+        "ignoredAppsPlaceholder": "App auswählen",
+        "ignoredAppsNoneSeen": "Noch keine Apps erkannt",
+        "ignoredAppsAdd": "Hinzufügen",
+        "ignoredAppsEmpty": "Keine Apps werden ignoriert.",
+        "ignoredAppsRemove": "{{app}} nicht mehr ignorieren",
         "calendarReminders": "Kalendererinnerungen",
         "calendarRemindersDescription": "Benachrichtigen, wenn ein geplantes Meeting bald beginnt",
         "updates": "App-Updates",
@@ -3874,11 +3881,13 @@
     "title": "Meeting erkannt",
     "body": {
       "detected": "Es klingt, als wärst du in einem Meeting. Notizen aufnehmen?",
+      "detectedApp": "Es klingt, als wärst du in einem Meeting in {{app}}. Möchtest du Notizen machen?",
       "starting": "Dein Meeting beginnt gleich. Notizen aufnehmen?",
       "underway": "Es klingt, als wäre dein Meeting schon im Gange. Notizen aufnehmen?"
     },
     "start": "Notizen aufnehmen",
     "join": "Beitreten & transkribieren",
+    "ignoreApp": "Nie für {{app}}",
     "autoEnd": {
       "title": "Meeting-Aufnahme beendet",
       "body": {

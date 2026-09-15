@@ -7,6 +7,8 @@ import type {
   CalendarAvailabilityRequest,
   CalendarAvailabilityResult,
   CalendarProviderAvailability,
+  MeetingDetectionPreferences,
+  MicCaptureApp,
 } from "./calendar";
 
 export type LocalTranscriptionProvider = "whisper" | "nvidia" | "cohere";
@@ -86,6 +88,9 @@ export interface MeetingDetectionNotificationData {
   event: { summary?: string | null } | null;
   variant: MeetingPromptVariant;
   joinUrl: string | null;
+  /** The app attributed to the capturing PID, when the mic evidence had one. */
+  appId?: string | null;
+  appName?: string | null;
 }
 
 /** Why auto-end concluded the meeting is over. */
@@ -2808,8 +2813,12 @@ declare global {
 
       meetingDetectionGetPreferences?: () => Promise<{ success: boolean; preferences?: any }>;
       meetingDetectionSetPreferences?: (
-        prefs: Record<string, boolean>
+        prefs: Partial<MeetingDetectionPreferences>
       ) => Promise<{ success: boolean }>;
+      meetingDetectionGetRecentCaptureApps?: () => Promise<{
+        success: boolean;
+        apps: MicCaptureApp[];
+      }>;
       syncNotificationPreferences?: (
         prefs: Record<string, boolean>
       ) => Promise<{ success: boolean }>;

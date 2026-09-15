@@ -80,6 +80,16 @@ export interface CalendarConnectionStatus {
 export interface MeetingDetectionPreferences {
   processDetection: boolean;
   audioDetection: boolean;
+  // App ids (see deriveAppId in src/helpers/micCapturePolicy.js) whose
+  // microphone use must never be read as a meeting.
+  ignoredApps: string[];
+}
+
+/** An app observed holding the microphone, as attributed from its capturing PID. */
+export interface MicCaptureApp {
+  appId: string;
+  appName: string;
+  lastSeenAt: number;
 }
 
 export interface CalendarAttendee {

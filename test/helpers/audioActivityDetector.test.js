@@ -8,6 +8,8 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 
+const { deriveAppIdentity } = require("../../src/helpers/micCapturePolicy");
+
 const detectorModulePath = require.resolve("../../src/helpers/audioActivityDetector");
 const originalLoad = Module._load;
 const originalPlatform = process.platform;
@@ -69,9 +71,12 @@ function createFakeChild(spawnError) {
 // `ownPids` is the #1392 spelling of the same injection: outside Electron the
 // real provider can only see the main pid, so child-process PIDs are supplied
 // here. Both spellings feed the detector's excluded-pid provider.
+// `executablePaths` maps a capturing pid to what the OS would report for it, so
+// attribution is decided by the test rather than by whatever happens to own that
+// pid on the host. Unlisted pids resolve as unattributable.
 function createDetector(
   platform,
-  { excludedProcessIds, ownPids, execResponses = [], spawnError } = {}
+  { excludedProcessIds, ownPids, execResponses = [], spawnError, executablePaths = {} } = {}
 ) {
   const getExcludedProcessIds =
     excludedProcessIds ?? (ownPids ? () => [...ownPids] : () => [process.pid]);
@@ -101,7 +106,12 @@ function createDetector(
     fakeExec
   );
 
-  const detector = new AudioActivityDetector(getExcludedProcessIds);
+  const resolveIdentity = async (pid) => {
+    const executablePath = executablePaths[pid] ?? null;
+    return { pid, executablePath, ...deriveAppIdentity(executablePath) };
+  };
+
+  const detector = new AudioActivityDetector(getExcludedProcessIds, { resolveIdentity });
   detector._isMicActive = async () => false;
   return { detector, children, calls, execCalls };
 }
@@ -754,9 +764,12 @@ test("win32: portable native state seam handles reference counts and failures", 
 // The native listeners are edge-triggered: they emit only on state transitions,
 // so an edge swallowed by a gate is never re-delivered. The detector must
 // remember the last known state and re-evaluate it when the gate lifts.
-// Mirrors SUSTAINED_EVENT_DRIVEN_MS and COOLDOWN_MS in audioActivityDetector.js.
+// Mirrors SUSTAINED_EVENT_DRIVEN_MS, COOLDOWN_MS and BASELINE_WINDOW_MS in
+// audioActivityDetector.js, and GENERIC_PROMPT_DELAY_MS in micCapturePolicy.js.
 const SUSTAINED_MS = 2 * 1000;
 const COOLDOWN_MS = 5 * 60 * 1000;
+const BASELINE_WINDOW_MS = 1500;
+const GENERIC_SUSTAINED_MS = 10 * 1000;
 
 test("darwin: a mic edge swallowed by the recording gate is re-evaluated when recording stops", async (t) => {
   t.mock.timers.enable({ apis: ["setTimeout", "Date"], now: 10_000 });
@@ -870,15 +883,20 @@ test("darwin: a warm-hold that releases cleanly does not produce a stale prompt"
   detector.stop();
 });
 
-test("win32: an unrelated app's mic session ending does not hide an ongoing dismissed call", async (t) => {
+// The reported bug: an app that holds the mic open forever got a fresh card
+// every COOLDOWN_MS, because the cooldown was purely time-based. A dismissal is
+// now scoped to the captures that were live when the user declined.
+test("win32: a dismissed capture that never stops cannot re-prompt after the cooldown", async (t) => {
   t.mock.timers.enable({ apis: ["setTimeout", "Date"], now: 10_000 });
   const { detector, children } = createDetector("win32");
   const emitted = [];
   detector.on("sustained-audio-detected", (data) => emitted.push(data));
 
   await detector.start();
+  t.mock.timers.tick(BASELINE_WINDOW_MS);
   children[0].stdout.emit("data", "MIC_START 11\n");
   t.mock.timers.tick(SUSTAINED_MS);
+  t.mock.timers.tick(GENERIC_SUSTAINED_MS);
   assert.equal(emitted.length, 1);
   detector.dismiss();
 
@@ -887,8 +905,20 @@ test("win32: an unrelated app's mic session ending does not hide an ongoing dism
   children[0].stdout.emit("data", "MIC_START 22\nMIC_STOP 22\n");
   t.mock.timers.tick(COOLDOWN_MS);
   t.mock.timers.tick(SUSTAINED_MS);
+  t.mock.timers.tick(GENERIC_SUSTAINED_MS);
 
-  assert.equal(emitted.length, 2, "the still-running call must re-prompt after the cooldown");
+  assert.deepEqual(
+    [...detector._activeMicPids],
+    [11],
+    "the reference count must still hold pid 11"
+  );
+  assert.equal(emitted.length, 1, "the same declined capture must stay quiet");
+
+  // A capture the user never declined is still a detection.
+  children[0].stdout.emit("data", "MIC_START 33\n");
+  t.mock.timers.tick(SUSTAINED_MS);
+  t.mock.timers.tick(GENERIC_SUSTAINED_MS);
+  assert.equal(emitted.length, 2, "a different app starting capture must still prompt");
   detector.stop();
 });
 
@@ -988,16 +1018,19 @@ test("linux: a later capture process re-prompts while the same process does not"
   detector.on("sustained-audio-detected", () => detections++);
 
   await detector.start();
+  t.mock.timers.tick(BASELINE_WINDOW_MS);
   children[0].stdout.emit("data", "Event 'new' on source-output #1\n");
   t.mock.timers.tick(RECONCILE_SPACING);
   await flushImmediate();
   t.mock.timers.tick(SUSTAINED_MS);
+  t.mock.timers.tick(GENERIC_SUSTAINED_MS);
   assert.equal(detections, 1);
 
   children[0].stdout.emit("data", "Event 'change' on source-output #1\n");
   t.mock.timers.tick(RECONCILE_SPACING);
   await flushImmediate();
   t.mock.timers.tick(SUSTAINED_MS);
+  t.mock.timers.tick(GENERIC_SUSTAINED_MS);
   assert.equal(detections, 1);
 
   children[0].stdout.emit("data", "Event 'remove' on source-output #1\n");
@@ -1008,6 +1041,7 @@ test("linux: a later capture process re-prompts while the same process does not"
   t.mock.timers.tick(RECONCILE_SPACING);
   await flushImmediate();
   t.mock.timers.tick(SUSTAINED_MS);
+  t.mock.timers.tick(GENERIC_SUSTAINED_MS);
   assert.equal(detections, 2);
   detector.stop();
 });
@@ -1040,16 +1074,19 @@ test("linux: a capture pid swapped inside one reconcile does not re-prompt", asy
   detector.on("sustained-audio-detected", () => detections++);
 
   await detector.start();
+  t.mock.timers.tick(BASELINE_WINDOW_MS);
   children[0].stdout.emit("data", "Event 'new' on source-output #1\n");
   t.mock.timers.tick(RECONCILE_SPACING);
   await flushImmediate();
   t.mock.timers.tick(SUSTAINED_MS);
+  t.mock.timers.tick(GENERIC_SUSTAINED_MS);
   assert.equal(detections, 1);
 
   children[0].stdout.emit("data", "Event 'change' on source-output #2\n");
   t.mock.timers.tick(RECONCILE_SPACING);
   await flushImmediate();
   t.mock.timers.tick(SUSTAINED_MS);
+  t.mock.timers.tick(GENERIC_SUSTAINED_MS);
   assert.equal(detections, 1, "a card must not drop over a call that never ended");
   detector.stop();
 });
@@ -1093,4 +1130,160 @@ test("linux: a listing with no attributable stream falls through to the unfilter
     ["pactl --format=json list source-outputs", "pactl list source-outputs short"]
   );
   assert.equal(detector._pidScopedCapability, false);
+});
+
+// The reported false positive: ChatGPT's helper holds an input stream open for
+// as long as the app runs, so it is always capturing by the time we look.
+const CHATGPT_HELPER = "/Applications/ChatGPT.app/Contents/Resources/native/system-audio-spectrum";
+const ZOOM_BINARY = "/Applications/zoom.us.app/Contents/MacOS/zoom.us";
+const CHATGPT_PID = 72618;
+const ZOOM_PID = 4410;
+
+// The detector's arming threshold is the conferencing one, so an unattributed
+// or generic capture needs a second tick to reach its own threshold.
+const tickToGenericPrompt = (t) => {
+  t.mock.timers.tick(SUSTAINED_MS);
+  t.mock.timers.tick(GENERIC_SUSTAINED_MS);
+};
+
+const startWithBaselineCapture = async (t, options) => {
+  t.mock.timers.enable({ apis: ["setTimeout", "Date"], now: 10_000 });
+  const harness = createDetector("darwin", options);
+  const emitted = [];
+  harness.detector.on("sustained-audio-detected", (data) => emitted.push(data));
+
+  await harness.detector.start();
+  return { ...harness, emitted };
+};
+
+test("darwin: a capture already open when the listener starts never prompts", async (t) => {
+  const { detector, children, emitted } = await startWithBaselineCapture(t, {
+    executablePaths: { [CHATGPT_PID]: CHATGPT_HELPER },
+  });
+
+  children[0].stdout.emit("data", `CAPABILITY PID\nMIC_START ${CHATGPT_PID}\n`);
+  await flushImmediate();
+  tickToGenericPrompt(t);
+
+  assert.deepEqual(emitted, [], "a capture that predates us is not evidence of a meeting");
+
+  // And the cooldown cannot revive it: before the fix this re-prompted every
+  // five minutes for as long as the app stayed open.
+  t.mock.timers.tick(COOLDOWN_MS);
+  tickToGenericPrompt(t);
+  assert.deepEqual(emitted, []);
+  detector.stop();
+});
+
+test("darwin: a baseline capture that stops and starts again is a normal detection", async (t) => {
+  const { detector, children, emitted } = await startWithBaselineCapture(t, {
+    executablePaths: { [CHATGPT_PID]: "/Applications/Audacity.app/Contents/MacOS/Audacity" },
+  });
+
+  children[0].stdout.emit("data", `CAPABILITY PID\nMIC_START ${CHATGPT_PID}\n`);
+  await flushImmediate();
+  tickToGenericPrompt(t);
+  assert.equal(emitted.length, 0);
+
+  children[0].stdout.emit("data", `MIC_STOP ${CHATGPT_PID}\n`);
+  children[0].stdout.emit("data", `MIC_START ${CHATGPT_PID}\n`);
+  await flushImmediate();
+  tickToGenericPrompt(t);
+
+  assert.equal(emitted.length, 1, "a capture we watched begin is a real detection");
+  assert.equal(emitted[0].appName, "Audacity");
+  detector.stop();
+});
+
+test("darwin: a conferencing call already underway at startup still prompts", async (t) => {
+  const { detector, children, emitted } = await startWithBaselineCapture(t, {
+    executablePaths: { [ZOOM_PID]: ZOOM_BINARY },
+  });
+
+  children[0].stdout.emit("data", `CAPABILITY PID\nMIC_START ${ZOOM_PID}\n`);
+  await flushImmediate();
+  t.mock.timers.tick(SUSTAINED_MS);
+
+  assert.equal(emitted.length, 1, "a named meeting app is exempt from baseline suppression");
+  assert.equal(emitted[0].appId, "zoom-us");
+  detector.stop();
+});
+
+test("darwin: an ignored app never prompts, and un-ignoring it restores detection", async (t) => {
+  const { detector, children, emitted } = await startWithBaselineCapture(t, {
+    executablePaths: { [ZOOM_PID]: ZOOM_BINARY },
+  });
+  detector.setIgnoredApps(["zoom-us"]);
+
+  children[0].stdout.emit("data", `CAPABILITY PID\nMIC_START ${ZOOM_PID}\n`);
+  await flushImmediate();
+  tickToGenericPrompt(t);
+  assert.equal(emitted.length, 0);
+
+  // Removing the app re-evaluates the capture that is open right now, instead
+  // of waiting for the app to release and retake the mic.
+  detector.setIgnoredApps([]);
+  t.mock.timers.tick(SUSTAINED_MS);
+
+  assert.equal(emitted.length, 1);
+  detector.stop();
+});
+
+// Attribution decides whether to prompt and nothing else: auto-end reads the
+// same pid set to tell whether a meeting is still live.
+test("darwin: ignored and baseline captures still count as external mic ownership", async (t) => {
+  const { detector, children } = await startWithBaselineCapture(t, {
+    executablePaths: { [CHATGPT_PID]: CHATGPT_HELPER },
+  });
+  detector.setIgnoredApps(["chatgpt"]);
+
+  children[0].stdout.emit("data", `CAPABILITY PID\nMIC_START ${CHATGPT_PID}\n`);
+  await flushImmediate();
+  tickToGenericPrompt(t);
+
+  assert.deepEqual([...detector._activeMicPids], [CHATGPT_PID]);
+  assert.deepEqual(detector.getExternalMicState(), { reliable: true, externalMicActive: true });
+
+  children[0].stdout.emit("data", `MIC_STOP ${CHATGPT_PID}\n`);
+  assert.deepEqual(detector.getExternalMicState(), { reliable: true, externalMicActive: false });
+  detector.stop();
+});
+
+test("darwin: apps seen capturing are offered to the Settings ignore list", async (t) => {
+  const { detector, children } = await startWithBaselineCapture(t, {
+    executablePaths: { [CHATGPT_PID]: CHATGPT_HELPER, [ZOOM_PID]: ZOOM_BINARY },
+  });
+
+  children[0].stdout.emit("data", `CAPABILITY PID\nMIC_START ${CHATGPT_PID}\n`);
+  await flushImmediate();
+  t.mock.timers.tick(SUSTAINED_MS);
+  children[0].stdout.emit("data", `MIC_START ${ZOOM_PID}\n`);
+  await flushImmediate();
+
+  assert.deepEqual(
+    detector.getRecentCaptureApps().map(({ appId, appName }) => ({ appId, appName })),
+    [
+      { appId: "zoom-us", appName: "zoom.us" },
+      { appId: "chatgpt", appName: "ChatGPT" },
+    ],
+    "newest sighting first"
+  );
+  detector.stop();
+});
+
+test("darwin: an unresolvable pid is unattributed but still detectable", async (t) => {
+  const { detector, children, emitted } = await startWithBaselineCapture(t, {});
+
+  t.mock.timers.tick(BASELINE_WINDOW_MS);
+  children[0].stdout.emit("data", "CAPABILITY PID\nMIC_START 9001\n");
+  await flushImmediate();
+  t.mock.timers.tick(SUSTAINED_MS);
+  assert.equal(emitted.length, 0, "an unnamed capture waits out the longer delay");
+
+  t.mock.timers.tick(GENERIC_SUSTAINED_MS);
+  assert.deepEqual(
+    emitted.map(({ appId, appName }) => ({ appId, appName })),
+    [{ appId: null, appName: null }]
+  );
+  detector.stop();
 });

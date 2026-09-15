@@ -358,6 +358,8 @@ function useSettingsInternal() {
     setNotificationsEnabled: store.setNotificationsEnabled,
     notifyMeetingDetection: store.notifyMeetingDetection,
     setNotifyMeetingDetection: store.setNotifyMeetingDetection,
+    meetingDetectionIgnoredApps: store.meetingDetectionIgnoredApps,
+    setMeetingDetectionIgnoredApps: store.setMeetingDetectionIgnoredApps,
     notifyCalendarReminders: store.notifyCalendarReminders,
     setNotifyCalendarReminders: store.setNotifyCalendarReminders,
     notifyUpdates: store.notifyUpdates,

@@ -1905,6 +1905,13 @@
         "disableAllDescription": "静音除错误消息外的所有内容",
         "meetingDetection": "会议检测",
         "meetingDetectionDescription": "检测到会议时通知您以便开始录音",
+        "ignoredApps": "忽略的应用",
+        "ignoredAppsDescription": "这些应用使用麦克风时不会被视为会议。如果某个应用持续误触发检测，请将其添加。",
+        "ignoredAppsPlaceholder": "选择应用",
+        "ignoredAppsNoneSeen": "尚未检测到应用",
+        "ignoredAppsAdd": "添加",
+        "ignoredAppsEmpty": "没有被忽略的应用。",
+        "ignoredAppsRemove": "取消忽略 {{app}}",
         "calendarReminders": "日历提醒",
         "calendarRemindersDescription": "预定会议即将开始时通知您",
         "updates": "应用更新",
@@ -3874,11 +3881,13 @@
     "title": "检测到会议",
     "body": {
       "detected": "你似乎正在开会。要开始记录吗？",
+      "detectedApp": "看起来你正在 {{app}} 中开会。要记笔记吗？",
       "starting": "你的会议即将开始。要开始记录吗？",
       "underway": "你的会议似乎已在进行中。要开始记录吗？"
     },
     "start": "开始记录",
     "join": "加入并转录",
+    "ignoreApp": "始终忽略 {{app}}",
     "autoEnd": {
       "title": "会议录音已结束",
       "body": {

@@ -2194,6 +2194,13 @@
         "disableAllDescription": "Silence everything except error messages",
         "meetingDetection": "Meeting detection",
         "meetingDetectionDescription": "Notify when a meeting is detected so you can start recording",
+        "ignoredApps": "Ignored apps",
+        "ignoredAppsDescription": "Microphone use by these apps never counts as a meeting. Add one if it keeps triggering false detections.",
+        "ignoredAppsPlaceholder": "Choose an app",
+        "ignoredAppsNoneSeen": "No apps seen yet",
+        "ignoredAppsAdd": "Add",
+        "ignoredAppsEmpty": "No apps are ignored.",
+        "ignoredAppsRemove": "Stop ignoring {{app}}",
         "calendarReminders": "Calendar reminders",
         "calendarRemindersDescription": "Notify when a scheduled meeting is about to start",
         "updates": "App updates",
@@ -3874,11 +3881,13 @@
     "title": "Meeting detected",
     "body": {
       "detected": "It sounds like you're in a meeting. Want to take notes?",
+      "detectedApp": "It sounds like you're in a meeting in {{app}}. Want to take notes?",
       "starting": "Your meeting is starting. Want to take notes?",
       "underway": "It sounds like your meeting is underway. Want to take notes?"
     },
     "start": "Take notes",
     "join": "Join & transcribe",
+    "ignoreApp": "Never for {{app}}",
     "autoEnd": {
       "title": "Meeting recording ended",
       "body": {

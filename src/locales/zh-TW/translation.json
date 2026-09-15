@@ -1905,6 +1905,13 @@
         "disableAllDescription": "靜音除錯誤訊息外的所有內容",
         "meetingDetection": "會議偵測",
         "meetingDetectionDescription": "偵測到會議時通知您以便開始錄音",
+        "ignoredApps": "忽略的應用程式",
+        "ignoredAppsDescription": "這些應用程式使用麥克風時不會被視為會議。如果某個應用程式持續誤觸發偵測，請將其新增。",
+        "ignoredAppsPlaceholder": "選擇應用程式",
+        "ignoredAppsNoneSeen": "尚未偵測到應用程式",
+        "ignoredAppsAdd": "新增",
+        "ignoredAppsEmpty": "沒有被忽略的應用程式。",
+        "ignoredAppsRemove": "取消忽略 {{app}}",
         "calendarReminders": "行事曆提醒",
         "calendarRemindersDescription": "預定會議即將開始時通知您",
         "updates": "應用程式更新",
@@ -3874,11 +3881,13 @@
     "title": "偵測到會議",
     "body": {
       "detected": "你似乎正在開會。要開始記錄嗎？",
+      "detectedApp": "看起來你正在 {{app}} 中開會。要記筆記嗎？",
       "starting": "你的會議即將開始。要開始記錄嗎？",
       "underway": "你的會議似乎已在進行中。要開始記錄嗎？"
     },
     "start": "開始記錄",
     "join": "加入並轉錄",
+    "ignoreApp": "一律忽略 {{app}}",
     "autoEnd": {
       "title": "會議錄音已結束",
       "body": {

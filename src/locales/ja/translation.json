@@ -1905,6 +1905,13 @@
         "disableAllDescription": "エラーメッセージ以外をすべて消音にする",
         "meetingDetection": "会議の検出",
         "meetingDetectionDescription": "会議が検出されたときに通知して録音を開始できるようにする",
+        "ignoredApps": "除外するアプリ",
+        "ignoredAppsDescription": "これらのアプリによるマイクの使用は会議として扱われません。誤検出が続くアプリを追加してください。",
+        "ignoredAppsPlaceholder": "アプリを選択",
+        "ignoredAppsNoneSeen": "まだアプリが検出されていません",
+        "ignoredAppsAdd": "追加",
+        "ignoredAppsEmpty": "除外中のアプリはありません。",
+        "ignoredAppsRemove": "{{app}} の除外を解除",
         "calendarReminders": "カレンダーリマインダー",
         "calendarRemindersDescription": "予定された会議がまもなく始まるときに通知する",
         "updates": "アプリの更新",
@@ -3874,11 +3881,13 @@
     "title": "会議を検出しました",
     "body": {
       "detected": "会議中のようです。メモを取りますか？",
+      "detectedApp": "{{app}} で会議中のようです。メモを取りますか？",
       "starting": "まもなく会議が始まります。メモを取りますか？",
       "underway": "会議はすでに進行中のようです。メモを取りますか？"
     },
     "start": "メモを取る",
     "join": "参加して文字起こし",
+    "ignoreApp": "{{app}} では常に表示しない",
     "autoEnd": {
       "title": "会議の録音が終了しました",
       "body": {

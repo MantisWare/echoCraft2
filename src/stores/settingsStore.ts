@@ -20,6 +20,7 @@ import {
   inheritsFallbackEndpoint,
 } from "../helpers/reasoningRouting";
 import { findStaleLocalModelKeys } from "../helpers/localModelSelections";
+import { DEFAULT_IGNORED_APP_IDS, normalizeAppId } from "../helpers/micCapturePolicy";
 import {
   INFERENCE_SCOPES,
   type InferenceScope,
@@ -326,6 +327,7 @@ const ARRAY_SETTINGS = new Set([
   "onboardingUseCases",
   "spokenLanguages",
   "translationTargets",
+  "meetingDetectionIgnoredApps",
 ]);
 
 const NUMERIC_SETTINGS = new Set([
@@ -690,6 +692,7 @@ export interface SettingsState
   mcalPrimaryOnly: boolean;
   appleCalendarConnected: boolean;
   meetingProcessDetection: boolean;
+  meetingDetectionIgnoredApps: string[];
   speakerDiarizationEnabled: boolean;
   dictationSileroEnabled: boolean;
   noteRecordingSileroEnabled: boolean;
@@ -996,6 +999,7 @@ export interface SettingsState
   setMcalPrimaryOnly: (value: boolean) => void;
   setAppleCalendarConnected: (value: boolean) => void;
   setMeetingProcessDetection: (value: boolean) => void;
+  setMeetingDetectionIgnoredApps: (appIds: string[]) => void;
   setSpeakerDiarizationEnabled: (value: boolean) => void;
   setDictationSileroEnabled: (value: boolean) => void;
   setNoteRecordingSileroEnabled: (value: boolean) => void;
@@ -1430,6 +1434,11 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   mcalPrimaryOnly: readBoolean("mcalPrimaryOnly", true),
   appleCalendarConnected: readBoolean("appleCalendarConnected", false),
   meetingProcessDetection: readBoolean("meetingProcessDetection", true),
+  // Seeded with the built-in list rather than kept separate from it, so a user
+  // can remove a default for an app they genuinely take meetings in.
+  meetingDetectionIgnoredApps: readStringArray("meetingDetectionIgnoredApps", [
+    ...DEFAULT_IGNORED_APP_IDS,
+  ]),
   speakerDiarizationEnabled: readBoolean("speakerDiarizationEnabled", true),
   // Off by default: VAD on pause-heavy dictations can strip the speech and make
   // Whisper hallucinate the dictionary prompt as the transcript (#1454).
@@ -2209,6 +2218,18 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   },
   setAppleCalendarConnected: createBooleanSetter("appleCalendarConnected"),
   setMeetingProcessDetection: createBooleanSetter("meetingProcessDetection"),
+  setMeetingDetectionIgnoredApps: (appIds: string[]) => {
+    const normalized = [
+      ...new Set(appIds.map((appId) => normalizeAppId(appId)).filter(Boolean)),
+    ] as string[];
+    if (isBrowser) {
+      localStorage.setItem("meetingDetectionIgnoredApps", JSON.stringify(normalized));
+    }
+    useSettingsStore.setState({ meetingDetectionIgnoredApps: normalized });
+    if (isBrowser) {
+      window.electronAPI?.meetingDetectionSetPreferences?.({ ignoredApps: normalized });
+    }
+  },
   setSpeakerDiarizationEnabled: (value: boolean) => {
     if (isBrowser) localStorage.setItem("speakerDiarizationEnabled", String(value));
     useSettingsStore.setState({ speakerDiarizationEnabled: value });
@@ -3231,6 +3252,7 @@ export async function initializeSettings(): Promise<void> {
       const currentState = useSettingsStore.getState();
       await window.electronAPI.meetingDetectionSetPreferences?.({
         processDetection: currentState.meetingProcessDetection,
+        ignoredApps: currentState.meetingDetectionIgnoredApps,
       });
     } catch (err) {
       logger.warn(

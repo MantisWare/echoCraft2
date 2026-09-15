@@ -2194,6 +2194,13 @@
         "disableAllDescription": "Tout couper sauf les messages d'erreur",
         "meetingDetection": "Détection de réunion",
         "meetingDetectionDescription": "Prévenir quand une réunion est détectée pour lancer l'enregistrement",
+        "ignoredApps": "Applications ignorées",
+        "ignoredAppsDescription": "L'utilisation du micro par ces applications ne compte jamais comme une réunion. Ajoutez-en une si elle déclenche de fausses détections.",
+        "ignoredAppsPlaceholder": "Choisir une application",
+        "ignoredAppsNoneSeen": "Aucune application détectée pour l'instant",
+        "ignoredAppsAdd": "Ajouter",
+        "ignoredAppsEmpty": "Aucune application n'est ignorée.",
+        "ignoredAppsRemove": "Ne plus ignorer {{app}}",
         "calendarReminders": "Rappels de calendrier",
         "calendarRemindersDescription": "Prévenir quand une réunion planifiée va commencer",
         "updates": "Mises à jour",
@@ -3874,11 +3881,13 @@
     "title": "Réunion détectée",
     "body": {
       "detected": "On dirait que vous êtes en réunion. Vous voulez prendre des notes ?",
+      "detectedApp": "Il semble que vous soyez en réunion dans {{app}}. Voulez-vous prendre des notes ?",
       "starting": "Votre réunion va commencer. Vous voulez prendre des notes ?",
       "underway": "On dirait que votre réunion est déjà en cours. Vous voulez prendre des notes ?"
     },
     "start": "Prendre des notes",
     "join": "Rejoindre et transcrire",
+    "ignoreApp": "Jamais pour {{app}}",
     "autoEnd": {
       "title": "L’enregistrement de la réunion est terminé",
       "body": {

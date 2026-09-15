@@ -703,6 +703,150 @@ test("pasteMacOSWithOsascript fallback uses the short macOS restore delay", asyn
   });
 });
 
+async function withPlatform(platform, callback) {
+  const descriptor = Object.getOwnPropertyDescriptor(process, "platform");
+  Object.defineProperty(process, "platform", { value: platform, configurable: true });
+  try {
+    return await callback();
+  } finally {
+    Object.defineProperty(process, "platform", descriptor);
+  }
+}
+
+// macos-fast-paste and System Events both post Cmd+V well before their process
+// exits, so a killed helper says nothing about whether the keystroke landed.
+test("pasteMacOS flags a timed-out paste as possibly delivered", async (t) => {
+  const TestClipboardManager = loadClipboardManager({
+    spawn: () => {
+      const pasteProcess = new EventEmitter();
+      pasteProcess.stderr = new EventEmitter();
+      pasteProcess.stdout = new EventEmitter();
+      pasteProcess.pid = 4242;
+      return pasteProcess;
+    },
+  });
+  const manager = new TestClipboardManager();
+  manager.resolveFastPasteBinary = () => "/tmp/openwhispr-fast-paste";
+
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const assertion = assert.rejects(
+    () => manager.pasteMacOS(null, { expectedClipboardText: "dictated text" }),
+    (error) => error.possiblyDelivered === true
+  );
+  t.mock.timers.tick(120);
+  t.mock.timers.tick(3000);
+
+  await assertion;
+});
+
+test("a timed-out macOS paste is not retried, so one dictation can't land twice", async () => {
+  resetClipboard({ text: "previous clipboard" });
+  const manager = new ClipboardManager();
+  let attempts = 0;
+
+  manager.checkAccessibilityPermissions = async () => true;
+  manager.resolveFastPasteBinary = () => "/tmp/openwhispr-fast-paste";
+  manager.pasteMacOS = async () => {
+    attempts += 1;
+    const error = new Error("Paste operation timed out.");
+    error.possiblyDelivered = true;
+    throw error;
+  };
+
+  await withPlatform("darwin", () =>
+    assert.rejects(() => manager._pasteText("dictated text"), /timed out/)
+  );
+
+  assert.equal(attempts, 1);
+});
+
+test("a failed paste hands the clipboard back instead of stranding the transcript", async () => {
+  resetClipboard({ text: "previous clipboard" });
+  const manager = new ClipboardManager();
+
+  manager.checkAccessibilityPermissions = async () => true;
+  manager.resolveFastPasteBinary = () => "/tmp/openwhispr-fast-paste";
+  manager.pasteMacOS = async () => {
+    const error = new Error(
+      "Paste operation timed out. Text is copied to clipboard - please paste manually with Cmd+V."
+    );
+    error.possiblyDelivered = true;
+    throw error;
+  };
+
+  await withPlatform("darwin", () =>
+    assert.rejects(
+      () => manager._pasteText("dictated text"),
+      (error) => {
+        // The manual-paste instruction would be a lie once the clipboard is back.
+        assert.match(error.message, /Your clipboard was left untouched\./);
+        assert.doesNotMatch(error.message, /please paste manually/);
+        return true;
+      }
+    )
+  );
+
+  assert.equal(fakeClipboard.text, "previous clipboard");
+});
+
+test("a failed paste leaves a clipboard the user changed mid-attempt alone", async () => {
+  resetClipboard({ text: "previous clipboard" });
+  const manager = new ClipboardManager();
+
+  manager.checkAccessibilityPermissions = async () => true;
+  manager.resolveFastPasteBinary = () => "/tmp/openwhispr-fast-paste";
+  manager.pasteMacOS = async () => {
+    fakeClipboard.writeText("copied while pasting");
+    const error = new Error("Paste operation timed out.");
+    error.possiblyDelivered = true;
+    throw error;
+  };
+
+  await withPlatform("darwin", () =>
+    assert.rejects(() => manager._pasteText("dictated text"), /timed out/)
+  );
+
+  assert.equal(fakeClipboard.text, "copied while pasting");
+});
+
+test("keeping the transcription in the clipboard survives a failed paste", async () => {
+  resetClipboard({ text: "previous clipboard" });
+  const manager = new ClipboardManager();
+
+  manager.checkAccessibilityPermissions = async () => true;
+  manager.resolveFastPasteBinary = () => "/tmp/openwhispr-fast-paste";
+  manager.pasteMacOS = async () => {
+    throw new Error("Paste operation timed out.");
+  };
+
+  await withPlatform("darwin", () =>
+    assert.rejects(
+      () => manager._pasteText("dictated text", { restoreClipboard: false }),
+      /timed out/
+    )
+  );
+
+  assert.equal(fakeClipboard.text, "dictated text");
+});
+
+test("a macOS paste that never reached the keystroke is still retried", async () => {
+  resetClipboard({ text: "previous clipboard" });
+  const manager = new ClipboardManager();
+  let attempts = 0;
+
+  manager.checkAccessibilityPermissions = async () => true;
+  manager.resolveFastPasteBinary = () => "/tmp/openwhispr-fast-paste";
+  manager.pasteMacOS = async () => {
+    attempts += 1;
+    if (attempts === 1) throw new Error("spawn ENOENT");
+    return { restoreComplete: Promise.resolve() };
+  };
+
+  await withPlatform("darwin", () => manager._pasteText("dictated text"));
+
+  assert.equal(attempts, 2);
+});
+
 // Terminal detection now serves two callers: the Linux paste path, which matches
 // window classes, and macOS selection capture, which matches localized app names.
 test("terminal detection matches window classes and macOS app names alike", () => {
