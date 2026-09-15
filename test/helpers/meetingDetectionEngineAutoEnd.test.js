@@ -129,8 +129,7 @@ function createEngine(windowManagerOverrides = {}) {
       autoEndNotifications.push(notification);
       return true;
     },
-    dismissMeetingAutoEndNotification: (sessionId) =>
-      dismissedAutoEndNotifications.push(sessionId),
+    dismissMeetingAutoEndNotification: (sessionId) => dismissedAutoEndNotifications.push(sessionId),
     isMeetingNotificationSender: (sender) => sender === overlayWebContents,
     showMeetingNotification: (notification) => shownNotifications.push(notification),
     ...windowManagerOverrides,
@@ -201,6 +200,9 @@ test("detection prompts retain their existing payload with a detection discrimin
       event,
       variant: "underway",
       joinUrl: null,
+      // Calendar evidence has no capturing process to attribute.
+      appId: null,
+      appName: null,
     },
   ]);
   engine.stop();
@@ -380,10 +382,7 @@ test("the recovery notice appears only after the owning renderer confirms stop c
   assert.deepEqual(harness.autoEndNotifications, []);
   harness.engine.endRecordingSession("meeting-1");
 
-  assert.equal(
-    await harness.engine.completeAutoEndSession("meeting-1", ownerWebContents),
-    true
-  );
+  assert.equal(await harness.engine.completeAutoEndSession("meeting-1", ownerWebContents), true);
   assert.deepEqual(harness.autoEndNotifications, [
     {
       sessionId: "meeting-1",
@@ -417,11 +416,7 @@ test("restart response is owner-scoped, single-use, and dismisses the notice", a
   await harness.engine.completeAutoEndSession("meeting-1", ownerWebContents);
 
   assert.equal(
-    harness.engine.respondToAutoEndNotification(
-      "meeting-1",
-      "restart",
-      harness.overlayWebContents
-    ),
+    harness.engine.respondToAutoEndNotification("meeting-1", "restart", harness.overlayWebContents),
     true
   );
   assert.deepEqual(messages.at(-1), {
@@ -430,11 +425,7 @@ test("restart response is owner-scoped, single-use, and dismisses the notice", a
   });
   assert.deepEqual(harness.dismissedAutoEndNotifications, ["meeting-1"]);
   assert.equal(
-    harness.engine.respondToAutoEndNotification(
-      "meeting-1",
-      "restart",
-      harness.overlayWebContents
-    ),
+    harness.engine.respondToAutoEndNotification("meeting-1", "restart", harness.overlayWebContents),
     false
   );
   harness.engine.stop();
@@ -449,11 +440,7 @@ test("dismiss response clears the recovery offer without restarting", async () =
   await harness.engine.completeAutoEndSession("meeting-1", ownerWebContents);
 
   assert.equal(
-    harness.engine.respondToAutoEndNotification(
-      "meeting-1",
-      "dismiss",
-      harness.overlayWebContents
-    ),
+    harness.engine.respondToAutoEndNotification("meeting-1", "dismiss", harness.overlayWebContents),
     true
   );
   assert.equal(
@@ -472,25 +459,14 @@ test("expired, wrong-sender, and invalid auto-end responses are rejected", async
   harness.engine.endRecordingSession("meeting-1");
   await harness.engine.completeAutoEndSession("meeting-1", ownerWebContents);
 
+  assert.equal(harness.engine.respondToAutoEndNotification("meeting-1", "restart", {}), false);
   assert.equal(
-    harness.engine.respondToAutoEndNotification("meeting-1", "restart", {}),
-    false
-  );
-  assert.equal(
-    harness.engine.respondToAutoEndNotification(
-      "meeting-1",
-      "unknown",
-      harness.overlayWebContents
-    ),
+    harness.engine.respondToAutoEndNotification("meeting-1", "unknown", harness.overlayWebContents),
     false
   );
   harness.clock.advance(RESTART_WINDOW_MS);
   assert.equal(
-    harness.engine.respondToAutoEndNotification(
-      "meeting-1",
-      "restart",
-      harness.overlayWebContents
-    ),
+    harness.engine.respondToAutoEndNotification("meeting-1", "restart", harness.overlayWebContents),
     false
   );
   assert.equal(
@@ -517,11 +493,7 @@ test("starting another recording invalidates an offered restart", async () => {
 
   assert.deepEqual(harness.dismissedAutoEndNotifications, ["meeting-1"]);
   assert.equal(
-    harness.engine.respondToAutoEndNotification(
-      "meeting-1",
-      "restart",
-      harness.overlayWebContents
-    ),
+    harness.engine.respondToAutoEndNotification("meeting-1", "restart", harness.overlayWebContents),
     false
   );
   harness.engine.stop();
@@ -537,16 +509,9 @@ test("notification load failure invalidates the completed restart offer", async 
   await triggerOwnershipStop(harness, ownerWebContents);
   harness.engine.endRecordingSession("meeting-1");
 
+  assert.equal(await harness.engine.completeAutoEndSession("meeting-1", ownerWebContents), false);
   assert.equal(
-    await harness.engine.completeAutoEndSession("meeting-1", ownerWebContents),
-    false
-  );
-  assert.equal(
-    harness.engine.respondToAutoEndNotification(
-      "meeting-1",
-      "restart",
-      harness.overlayWebContents
-    ),
+    harness.engine.respondToAutoEndNotification("meeting-1", "restart", harness.overlayWebContents),
     false
   );
   harness.engine.stop();
@@ -559,6 +524,7 @@ test("a legacy autoEnd preference cannot disable eligible meeting auto-end", asy
   assert.deepEqual(harness.engine.getPreferences(), {
     processDetection: false,
     audioDetection: false,
+    ignoredApps: [],
   });
 
   await triggerOwnershipStop(harness, harness.owner(messages));
@@ -741,11 +707,7 @@ test("an explicit restart grants the new session a grace period before auto-end 
   harness.engine.endRecordingSession("meeting-1");
   await harness.engine.completeAutoEndSession("meeting-1", ownerWebContents);
   assert.equal(
-    harness.engine.respondToAutoEndNotification(
-      "meeting-1",
-      "restart",
-      harness.overlayWebContents
-    ),
+    harness.engine.respondToAutoEndNotification("meeting-1", "restart", harness.overlayWebContents),
     true
   );
 
@@ -783,11 +745,7 @@ test("the restart grace is single-use and does not leak into an unrelated later 
   await triggerOwnershipStop(harness, ownerWebContents);
   harness.engine.endRecordingSession("meeting-1");
   await harness.engine.completeAutoEndSession("meeting-1", ownerWebContents);
-  harness.engine.respondToAutoEndNotification(
-    "meeting-1",
-    "restart",
-    harness.overlayWebContents
-  );
+  harness.engine.respondToAutoEndNotification("meeting-1", "restart", harness.overlayWebContents);
 
   harness.audioActivityDetector.externalMicState = {
     reliable: true,
@@ -841,11 +799,7 @@ test("a queued detection cannot replace a live restart offer", async () => {
   harness.engine._flushNotificationQueue();
   assert.deepEqual(harness.shownNotifications, []);
   assert.equal(
-    harness.engine.respondToAutoEndNotification(
-      "meeting-1",
-      "restart",
-      harness.overlayWebContents
-    ),
+    harness.engine.respondToAutoEndNotification("meeting-1", "restart", harness.overlayWebContents),
     true
   );
   harness.engine.stop();
@@ -868,11 +822,7 @@ test("a detection queued behind a restart offer is delivered once the offer reso
   harness.engine._flushNotificationQueue();
   assert.deepEqual(harness.shownNotifications, []);
 
-  harness.engine.respondToAutoEndNotification(
-    "meeting-1",
-    "dismiss",
-    harness.overlayWebContents
-  );
+  harness.engine.respondToAutoEndNotification("meeting-1", "dismiss", harness.overlayWebContents);
 
   assert.equal(harness.shownNotifications.length, 1);
   assert.equal(harness.shownNotifications[0].detectionId, "calendar:calendar-next");
@@ -888,11 +838,7 @@ test("a recovery notice that does not report success invalidates the restart off
 
   assert.equal(await harness.engine.completeAutoEndSession("meeting-1", ownerWebContents), false);
   assert.equal(
-    harness.engine.respondToAutoEndNotification(
-      "meeting-1",
-      "restart",
-      harness.overlayWebContents
-    ),
+    harness.engine.respondToAutoEndNotification("meeting-1", "restart", harness.overlayWebContents),
     false
   );
   harness.engine.stop();
