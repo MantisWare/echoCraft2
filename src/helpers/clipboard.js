@@ -21,6 +21,23 @@ const PASTE_DELAYS = {
   linux: 50,
 };
 
+// A paste helper that is killed before it reports back may still have posted
+// the keystroke: both macos-fast-paste and System Events send Cmd+V long
+// before the process exits, so a timeout says nothing about delivery. Retrying
+// one of those is what pastes a dictation into the field twice, so the timeout
+// tags its error and the retry declines it.
+const markPossiblyDelivered = (error) => {
+  error.possiblyDelivered = true;
+  return error;
+};
+
+// Every platform paste path signs its errors off with a manual-paste
+// instruction, which stops being true once a failed paste hands the clipboard
+// back. Rewriting the clause at the one funnel point keeps the platform
+// diagnostics (exit codes, stderr) that precede it intact.
+const MANUAL_PASTE_HINT =
+  /\s*Text (?:is|has been) copied to clipboard - please paste manually with (?:Cmd|Ctrl)\+V\./;
+
 const RESTORE_DELAYS = {
   darwin: 450,
   win32_nircmd: 500,
@@ -773,6 +790,23 @@ class ClipboardManager {
     this.safeLog("🔄 Clipboard restored");
   }
 
+  // With "keep transcription in clipboard" off, a failed paste must not become
+  // the one path that strands the transcript there — the dictation text would
+  // silently replace whatever the user had copied, with no later restore to
+  // undo it. The clipboard is only reclaimed while it still holds our own
+  // text, so anything copied during the attempt still wins.
+  _restoreClipboardAfterPasteFailure(original, pastedText, originalPrimary = null) {
+    if (original == null && originalPrimary == null) return false;
+    try {
+      if (clipboard.readText() !== pastedText) return false;
+      if (original != null) this._restoreClipboard(original);
+      if (originalPrimary != null) this._writePrimarySelection(originalPrimary);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async _restoreClipboardAfterDelay(original, { delayMs, expectedText, restore } = {}) {
     if (!original) return;
     await new Promise((resolve) => setTimeout(resolve, delayMs));
@@ -880,11 +914,13 @@ class ClipboardManager {
     let method = "unknown";
     const webContents = options.webContents;
     const allowClipboardFallback = options.allowClipboardFallback === true;
+    let originalClipboard = null;
+    let originalPrimary = null;
 
     try {
       const shouldRestore = options.restoreClipboard !== false;
-      const originalClipboard = shouldRestore ? this._saveClipboard() : null;
-      const originalPrimary =
+      originalClipboard = shouldRestore ? this._saveClipboard() : null;
+      originalPrimary =
         platform === "linux" && shouldRestore ? this._readPrimarySelection() : null;
       if (shouldRestore) {
         this.safeLog("💾 Saved original clipboard:", originalClipboard.type);
@@ -927,6 +963,11 @@ class ClipboardManager {
             expectedClipboardText: text,
           });
         } catch (firstError) {
+          // Only a failure that provably never reached the keystroke may be
+          // retried. macos-fast-paste exits non-zero solely from its
+          // pre-flight checks (untrusted, CGEvent alloc), and a spawn error
+          // never ran anything, so those are safe; a timeout is not.
+          if (firstError?.possiblyDelivered === true) throw firstError;
           this.safeLog("⚠️ First paste attempt failed, retrying...", firstError?.message);
           clipboard.writeText(text);
           await new Promise((r) => setTimeout(r, 200));
@@ -964,12 +1005,21 @@ class ClipboardManager {
       });
       return pasteResult || { restoreComplete: Promise.resolve() };
     } catch (error) {
+      const reclaimed = this._restoreClipboardAfterPasteFailure(
+        originalClipboard,
+        text,
+        originalPrimary
+      );
       this.safeLog("❌ Paste operation failed", {
         platform,
         method,
         elapsedMs: Date.now() - startTime,
         error: error.message,
+        reclaimedClipboard: reclaimed,
       });
+      if (reclaimed) {
+        error.message = `${error.message.replace(MANUAL_PASTE_HINT, "")} Your clipboard was left untouched.`;
+      }
       throw error;
     }
   }
@@ -1052,7 +1102,7 @@ class ClipboardManager {
           pasteProcess.removeAllListeners();
           const errorMsg =
             "Paste operation timed out. Text is copied to clipboard - please paste manually with Cmd+V.";
-          reject(new Error(errorMsg));
+          reject(markPossiblyDelivered(new Error(errorMsg)));
         }, 3000);
       }, pasteDelay);
     });
@@ -1104,8 +1154,10 @@ class ClipboardManager {
         killProcess(pasteProcess, "SIGKILL");
         pasteProcess.removeAllListeners();
         reject(
-          new Error(
-            "Paste operation timed out. Text is copied to clipboard - please paste manually with Cmd+V."
+          markPossiblyDelivered(
+            new Error(
+              "Paste operation timed out. Text is copied to clipboard - please paste manually with Cmd+V."
+            )
           )
         );
       }, 3000);

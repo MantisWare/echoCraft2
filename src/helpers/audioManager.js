@@ -511,6 +511,7 @@ class AudioManager {
     this.pendingCleanupFailure = null;
     this._processingCancellationGeneration = 0;
     this._activeProcessingPipeline = null;
+    this._transcriptPublished = false;
     this.assistantSelectionContext = null;
     this.screenContextPromise = null;
     this.selectionCapturePromise = null;
@@ -1158,6 +1159,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     let prepared = null;
     let preparedAdopted = false;
     this._startInProgress = true;
+    this._transcriptPublished = false;
     try {
       if (!this.isRecordingAllowedByPolicy()) {
         logger.warn("Recording blocked by workspace policy", {}, "audio");
@@ -1486,7 +1488,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       );
       if (!this._settleProcessingPipeline(processingPipeline)) return;
       this._localSpeechGateState = null;
-      this.onTranscriptionComplete?.({ success: true, text: "" });
+      this._publishTranscriptionResult({ success: true, text: "" });
       return;
     }
     // Non-commit sessions stop concurrently with the decode below.
@@ -1728,6 +1730,31 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     );
   }
 
+  // One dictation must paste exactly one transcript. The batch and streaming
+  // finalizers each guard themselves with their own counter
+  // (_activeProcessingPipeline vs _streamingCancellationGeneration) and neither
+  // observes the other in flight, so a stream that settles alongside a batch
+  // decode publishes two different transcripts of the same audio and the
+  // renderer pastes both. This latch is the only place that sees both.
+  _publishTranscriptionResult(result) {
+    const hasText = typeof result?.text === "string" && result.text.trim() !== "";
+    // An empty outcome drives the "no audio" surface and never pastes, so it
+    // must not latch — a real transcript still has to get through behind one.
+    if (hasText) {
+      if (this._transcriptPublished) {
+        logger.warn(
+          "Dropped a second transcript for a single dictation",
+          { source: result?.source ?? null, textLength: result.text.length },
+          "transcription"
+        );
+        return false;
+      }
+      this._transcriptPublished = true;
+    }
+    this.onTranscriptionComplete?.(result);
+    return true;
+  }
+
   _settleProcessingPipeline(pipeline) {
     if (this._activeProcessingPipeline !== pipeline) return false;
     this._activeProcessingPipeline = null;
@@ -1795,7 +1822,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         "audio"
       );
       if (!this._settleProcessingPipeline(pipeline)) return;
-      this.onTranscriptionComplete?.({ success: true, text: "" });
+      this._publishTranscriptionResult({ success: true, text: "" });
       return;
     }
 
@@ -1867,7 +1894,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
       result = withSalvageWarning(result, metadata.salvagedRecording);
 
       result = { ...result, ...this._takePendingResultExtras() };
-      this.onTranscriptionComplete?.(result);
+      this._publishTranscriptionResult(result);
 
       if (result?.source === "openwhispr") {
         window.dispatchEvent(new Event("usage-changed"));
@@ -4101,6 +4128,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     let sessionId = null;
     let startWasCancelled = () => false;
     this._startInProgress = true;
+    this._transcriptPublished = false;
     try {
       if (!this.isRecordingAllowedByPolicy()) {
         logger.warn("Streaming recording blocked by workspace policy", {}, "audio");
@@ -4944,7 +4972,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
         model: streamingSttModel || null,
       };
       if (wasCancelled()) return true;
-      this.onTranscriptionComplete?.({
+      this._publishTranscriptionResult({
         success: true,
         text: finalText,
         rawText: rawStreamingText || finalText,
@@ -5004,7 +5032,7 @@ registerProcessor("pcm-streaming-processor", PCMStreamingProcessor);
     if (!finalText) {
       // Match the batch pipeline: settle processing first, then publish the
       // empty outcome so the warning cannot interrupt the thinking transition.
-      this.onTranscriptionComplete?.({ success: true, text: "" });
+      this._publishTranscriptionResult({ success: true, text: "" });
     }
 
     if (this.shouldUseStreaming()) {

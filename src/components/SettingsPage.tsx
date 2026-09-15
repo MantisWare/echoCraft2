@@ -91,6 +91,7 @@ import ChatAgentSettings from "./settings/ChatAgentSettings";
 import DictationAgentSettings from "./settings/DictationAgentSettings";
 import DictationTranslationSettings from "./settings/DictationTranslationSettings";
 import InferenceConfigEditor from "./settings/InferenceConfigEditor";
+import { MeetingDetectionIgnoreList } from "./settings/MeetingDetectionIgnoreList";
 import { MeetingTranscriptionPanel } from "./settings/MeetingSettings";
 import { UploadTranscriptionPanel } from "./settings/UploadSettings";
 import LanguageSelector from "./ui/LanguageSelector";
@@ -2946,6 +2947,9 @@ export default function SettingsPage({
                       disabled={!notificationsEnabled}
                     />
                   </SettingsRow>
+                </SettingsPanelRow>
+                <SettingsPanelRow>
+                  <MeetingDetectionIgnoreList />
                 </SettingsPanelRow>
                 <SettingsPanelRow>
                   <SettingsRow

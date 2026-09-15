@@ -4,6 +4,8 @@ const EventEmitter = require("events");
 const debugLogger = require("./debugLogger");
 const { resolveBundledBinary } = require("./binaryResolver");
 const { getOwnProcessPids } = require("./ownProcessPids");
+const { resolveCaptureIdentity } = require("./micCaptureIdentity");
+const { DEFAULT_IGNORED_APP_IDS, decideMicPrompt, normalizeAppId } = require("./micCapturePolicy");
 
 const execAsync = promisify(exec);
 
@@ -12,6 +14,10 @@ const SUSTAINED_THRESHOLD_CHECKS = 2;
 const SUSTAINED_EVENT_DRIVEN_MS = 2 * 1000;
 const COOLDOWN_MS = 5 * 60 * 1000;
 const INACTIVE_RESET_MS = 60 * 1000;
+// Captures reported this soon after the listener starts were already open, so
+// their start time tells us nothing about when the "meeting" began. An app that
+// permanently holds the mic only ever appears inside this window.
+const BASELINE_WINDOW_MS = 1500;
 // PipeWire/PulseAudio emit 'change' subscribe events several times a second on
 // cork/volume churn, and every reconcile forks a pactl subprocess.
 const LINUX_RECONCILE_MIN_SPACING_MS = 1000;
@@ -21,9 +27,13 @@ class AudioActivityDetector extends EventEmitter {
   // `getExcludedProcessIds` lists every pid whose mic use is OpenWhispr's own:
   // the Electron process tree by default, plus any live capture helpers when
   // main.js composes them in (see electronProcessIds.js).
-  constructor(getExcludedProcessIds = () => [...getOwnProcessPids()]) {
+  constructor(
+    getExcludedProcessIds = () => [...getOwnProcessPids()],
+    { resolveIdentity = resolveCaptureIdentity } = {}
+  ) {
     super();
     this._getExcludedProcessIds = getExcludedProcessIds;
+    this._resolveIdentity = resolveIdentity;
     this.checkInterval = null;
     this.consecutiveChecks = 0;
     this.audioActiveStart = null;
@@ -55,6 +65,44 @@ class AudioActivityDetector extends EventEmitter {
     this._externalCapturePids = new Set();
     this._promptedCapturePids = new Set();
     this._captureIdleSincePrompt = false;
+    // Per-capture bookkeeping that drives attribution: when each PID started
+    // capturing, whether it predates the listener, and whether the user already
+    // declined a prompt for it. Keyed by PID and pruned when the capture ends.
+    this._captureStates = new Map();
+    this._captureIdentities = new Map();
+    this._seenCaptureApps = new Map();
+    this._ignoredAppIds = new Set(DEFAULT_IGNORED_APP_IDS);
+    this._baselineUntil = 0;
+  }
+
+  // The renderer owns the persisted list (built-in defaults included, so a user
+  // can remove one), and pushes the whole thing down.
+  setIgnoredApps(appIds) {
+    if (!Array.isArray(appIds)) return;
+    this._ignoredAppIds = new Set(
+      appIds.map((appId) => normalizeAppId(appId)).filter((appId) => appId !== null)
+    );
+    debugLogger.info(
+      "Meeting detection ignore list updated",
+      { ignoredApps: [...this._ignoredAppIds] },
+      "meeting"
+    );
+    // The listeners are edge-triggered, so a list change has to be applied to
+    // the capture that is open right now: ignoring an app must drop its pending
+    // prompt, and un-ignoring one must let it be detected without waiting for
+    // the app to reopen the mic.
+    this._clearSustainedTimer();
+    this._reevaluateAfterGate();
+  }
+
+  getIgnoredApps() {
+    return [...this._ignoredAppIds];
+  }
+
+  // Everything attributed as capturing this session, newest first. Feeds the
+  // Settings picker so the user can ignore an app without having to guess its id.
+  getRecentCaptureApps() {
+    return [...this._seenCaptureApps.values()].sort((a, b) => b.lastSeenAt - a.lastSeenAt);
   }
 
   _markPrompted() {
@@ -130,6 +178,7 @@ class AudioActivityDetector extends EventEmitter {
     if (this._running) return;
     this._running = true;
     const generation = ++this._startGeneration;
+    this._baselineUntil = Date.now() + BASELINE_WINDOW_MS;
 
     const started = await this._tryEventDriven(generation);
     if (this._isStale(generation)) return;
@@ -170,6 +219,13 @@ class AudioActivityDetector extends EventEmitter {
 
   dismiss() {
     this.lastDismissedAt = Date.now();
+    // Scoped to the captures that were live when the user declined, and held
+    // until each of them actually stops (the bookkeeping drops the flag with
+    // the PID). A time-only cooldown re-prompted every COOLDOWN_MS forever
+    // against an app that never releases the mic.
+    for (const state of this._captureStates.values()) {
+      state.dismissed = true;
+    }
     this._reset();
     this._clearSustainedTimer();
     this._clearResetTimer();
@@ -180,7 +236,7 @@ class AudioActivityDetector extends EventEmitter {
     }
     debugLogger.info(
       "Audio detection dismissed, cooldown started",
-      { cooldownMs: COOLDOWN_MS },
+      { cooldownMs: COOLDOWN_MS, dismissedPids: [...this._captureStates.keys()] },
       "meeting"
     );
   }
@@ -213,6 +269,8 @@ class AudioActivityDetector extends EventEmitter {
     this._activeSources = 0;
     this._lastKnownMicState = false;
     this._externalCapturePids.clear();
+    this._captureStates.clear();
+    this._captureIdentities.clear();
     this._clearCooldownReevalTimer();
     this._linuxOwnershipRequest++;
     this._linuxReconcileQueued = false;
@@ -346,6 +404,9 @@ class AudioActivityDetector extends EventEmitter {
       this._resetListenerState();
       if (this._running && this._eventDriven) {
         this._eventDriven = false;
+        // The first poll after a fallback is a fresh snapshot of what is
+        // already capturing, so it gets the same baseline treatment as startup.
+        this._baselineUntil = Date.now() + BASELINE_WINDOW_MS;
         this._startPolling();
       }
     };
@@ -638,6 +699,7 @@ class AudioActivityDetector extends EventEmitter {
       (processId) => !excludedProcessIds.has(processId)
     );
     this._externalCapturePids = new Set(externalPids);
+    this._syncCaptureBookkeeping(externalPids);
     const externalMicActive = externalPids.length > 0;
     if (!this._pidScopedCapability || !this._isOwnershipSnapshotLive()) {
       this._setExternalMicSnapshot(false, false, emitChange);
@@ -646,6 +708,64 @@ class AudioActivityDetector extends EventEmitter {
 
     this._setExternalMicSnapshot(true, externalMicActive, emitChange);
     return externalMicActive;
+  }
+
+  // Every platform funnels its capture set through _updateExternalMicState, so
+  // this is the one place that has to notice a capture starting or ending.
+  // Attribution never touches _activeMicPids: an ignored app still has to be
+  // reference-counted, or auto-end's ownership snapshot would read a live call
+  // as gone the moment an ignored capture stopped.
+  _syncCaptureBookkeeping(externalPids) {
+    const now = Date.now();
+    const live = new Set(externalPids);
+
+    for (const pid of [...this._captureStates.keys()]) {
+      if (live.has(pid)) continue;
+      this._captureStates.delete(pid);
+      this._captureIdentities.delete(pid);
+    }
+
+    for (const pid of live) {
+      if (this._captureStates.has(pid)) continue;
+      this._captureStates.set(pid, {
+        startedAt: now,
+        baseline: now < this._baselineUntil,
+        dismissed: false,
+      });
+      void this._ensureCaptureIdentity(pid);
+    }
+  }
+
+  async _ensureCaptureIdentity(pid) {
+    if (this._captureIdentities.has(pid)) return;
+
+    const identity = await this._resolveIdentity(pid);
+    // The capture may have ended while we were resolving; re-adding it would
+    // leave a dangling identity that the next capture on a recycled PID reads.
+    if (!this._captureStates.has(pid)) return;
+    this._captureIdentities.set(pid, identity);
+
+    if (identity?.appId) {
+      this._seenCaptureApps.set(identity.appId, {
+        appId: identity.appId,
+        appName: identity.appName ?? identity.appId,
+        lastSeenAt: Date.now(),
+      });
+    }
+  }
+
+  _currentCaptures() {
+    return [...this._captureStates.entries()].map(([pid, state]) => {
+      const identity = this._captureIdentities.get(pid);
+      return {
+        pid,
+        appId: identity?.appId ?? null,
+        appName: identity?.appName ?? null,
+        startedAt: state.startedAt,
+        baseline: state.baseline,
+        dismissed: state.dismissed,
+      };
+    });
   }
 
   _setExternalMicSnapshot(reliable, externalMicActive, emitChange) {
@@ -741,28 +861,73 @@ class AudioActivityDetector extends EventEmitter {
       }
       if (!this.audioActiveStart) this.audioActiveStart = Date.now();
 
-      if (!this._sustainedTimer) {
-        this._sustainedTimer = setTimeout(() => {
-          this._sustainedTimer = null;
-          if (this._userRecording || this._micWarmHold || this.hasPrompted) return;
-          if (this.lastDismissedAt && Date.now() - this.lastDismissedAt < COOLDOWN_MS) return;
-
-          this._markPrompted();
-          const now = Date.now();
-          const durationMs = now - this.audioActiveStart;
-          debugLogger.info(
-            "Sustained audio activity detected (event-driven)",
-            { durationMs },
-            "meeting"
-          );
-          this.emit("sustained-audio-detected", { durationMs, detectedAt: now });
-        }, SUSTAINED_EVENT_DRIVEN_MS);
-      }
+      if (!this._sustainedTimer) this._armSustainedTimer(SUSTAINED_EVENT_DRIVEN_MS);
     } else {
       this._clearSustainedTimer();
       this.audioActiveStart = null;
       if (this.hasPrompted) this._startResetTimer();
     }
+  }
+
+  _armSustainedTimer(delayMs) {
+    this._clearSustainedTimer();
+    this._sustainedTimer = setTimeout(() => {
+      this._sustainedTimer = null;
+      this._resolveSustainedPrompt();
+    }, delayMs);
+  }
+
+  // The arming threshold is the shortest any capture could need, so a capture
+  // that needs longer is re-armed rather than dropped. That also gives the
+  // asynchronous PID attribution time to land before the first verdict.
+  _resolveSustainedPrompt() {
+    if (!this._running) return;
+    if (this._userRecording || this._micWarmHold || this.hasPrompted) return;
+    if (this._cooldownRemainingMs() > 0) return;
+
+    const decision = decideMicPrompt({
+      captures: this._currentCaptures(),
+      ignoredAppIds: this._ignoredAppIds,
+    });
+
+    if (decision.action === "wait") {
+      this._armSustainedTimer(decision.waitMs);
+      return;
+    }
+
+    if (decision.action === "suppress") {
+      debugLogger.debug(
+        "Sustained audio ignored — no capture looks like a meeting",
+        { captures: this._currentCaptures().map(({ pid, appId }) => ({ pid, appId })) },
+        "meeting"
+      );
+      return;
+    }
+
+    this._emitSustainedDetection(decision, "event-driven");
+  }
+
+  _emitSustainedDetection(decision, mode, extra = {}) {
+    this._markPrompted();
+    const now = Date.now();
+    const durationMs = now - (this.audioActiveStart ?? now);
+    debugLogger.info(
+      "Sustained audio activity detected",
+      {
+        mode,
+        durationMs,
+        appId: decision.appId ?? null,
+        appName: decision.appName ?? null,
+        ...extra,
+      },
+      "meeting"
+    );
+    this.emit("sustained-audio-detected", {
+      durationMs,
+      detectedAt: now,
+      appId: decision.appId ?? null,
+      appName: decision.appName ?? null,
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -796,15 +961,23 @@ class AudioActivityDetector extends EventEmitter {
         if (!this.audioActiveStart) this.audioActiveStart = Date.now();
 
         if (!this.hasPrompted && this.consecutiveChecks >= SUSTAINED_THRESHOLD_CHECKS) {
-          this._markPrompted();
-          const now = Date.now();
-          const durationMs = now - this.audioActiveStart;
-          debugLogger.info(
-            "Sustained audio activity detected",
-            { consecutiveChecks: this.consecutiveChecks, durationMs },
-            "meeting"
-          );
-          this.emit("sustained-audio-detected", { durationMs, detectedAt: now });
+          // No re-arming here: the next poll re-decides, so a capture that only
+          // needs more time simply prompts on a later check.
+          const decision = decideMicPrompt({
+            captures: this._currentCaptures(),
+            ignoredAppIds: this._ignoredAppIds,
+          });
+          if (decision.action === "prompt") {
+            this._emitSustainedDetection(decision, "polling", {
+              consecutiveChecks: this.consecutiveChecks,
+            });
+          } else {
+            debugLogger.debug(
+              "Sustained mic activity ignored by capture attribution",
+              { action: decision.action },
+              "meeting"
+            );
+          }
         }
       } else {
         if (this.consecutiveChecks > 0) {

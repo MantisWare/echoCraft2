@@ -158,6 +158,12 @@ export default function MeetingNotificationOverlay(): ReactElement {
     presentation.action === "restart"
       ? () => void respondToAutoEnd("restart")
       : () => respond(presentation.action);
+  const secondaryAction =
+    "secondaryAction" in presentation ? presentation.secondaryAction : undefined;
+  const secondaryLabel =
+    "secondaryActionKey" in presentation && presentation.secondaryActionKey
+      ? t(presentation.secondaryActionKey, presentation.secondaryActionValues)
+      : undefined;
 
   return (
     <div
@@ -172,6 +178,8 @@ export default function MeetingNotificationOverlay(): ReactElement {
         body={body}
         startLabel={t(presentation.actionKey)}
         onStart={handleAction}
+        secondaryLabel={secondaryLabel}
+        onSecondary={secondaryAction ? () => void respond(secondaryAction) : undefined}
         onDismiss={presentation.dismissible ? dismiss : undefined}
         closeVisible={isHovered}
         allowTitleWrap={presentation.allowTitleWrap}

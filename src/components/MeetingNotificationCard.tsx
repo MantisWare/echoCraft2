@@ -6,6 +6,9 @@ interface MeetingNotificationCardProps {
   body: string;
   startLabel: string;
   onStart?: () => void;
+  /** Optional secondary action, rendered under the primary one. */
+  secondaryLabel?: string;
+  onSecondary?: () => void;
   onDismiss?: () => void;
   /** Controls the close button's hover fade. Ignored when `onDismiss` is absent. */
   closeVisible?: boolean;
@@ -26,6 +29,8 @@ export function MeetingNotificationCard({
   body,
   startLabel,
   onStart,
+  secondaryLabel,
+  onSecondary,
   onDismiss,
   closeVisible = true,
   allowTitleWrap = false,
@@ -89,12 +94,22 @@ export function MeetingNotificationCard({
           </p>
         </div>
 
-        <button
-          onClick={onStart}
-          className="shrink-0 whitespace-nowrap bg-primary text-primary-foreground hover:bg-primary/90 text-[11px] font-medium px-2.5 py-1 rounded-md transition-colors"
-        >
-          {startLabel}
-        </button>
+        <div className="flex shrink-0 flex-col items-stretch gap-1">
+          <button
+            onClick={onStart}
+            className="whitespace-nowrap bg-primary text-primary-foreground hover:bg-primary/90 text-[11px] font-medium px-2.5 py-1 rounded-md transition-colors"
+          >
+            {startLabel}
+          </button>
+          {secondaryLabel && (
+            <button
+              onClick={onSecondary}
+              className="whitespace-nowrap text-[10px] font-medium text-muted-foreground hover:text-foreground px-2.5 py-0.5 rounded-md transition-colors hover:bg-muted"
+            >
+              {secondaryLabel}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

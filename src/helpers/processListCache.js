@@ -10,6 +10,13 @@ class ProcessListCache {
   }
 
   async getProcessList() {
+    const entries = await this.getProcessEntries();
+    return entries.map((entry) => (entry.name ?? "").toLowerCase());
+  }
+
+  // Full entries (pid, name, cmd) for callers that need to attribute a PID
+  // rather than just ask whether a named process is running.
+  async getProcessEntries() {
     const now = Date.now();
     if (this._cache && now - this._cacheTime < CACHE_TTL_MS) {
       return this._cache;
@@ -29,11 +36,10 @@ class ProcessListCache {
     try {
       const psList = (await import("ps-list")).default;
       const procs = await psList();
-      const names = procs.map((p) => (p.name || "").toLowerCase());
-      this._cache = names;
+      this._cache = procs;
       this._cacheTime = now;
-      debugLogger.debug("Process list refreshed", { count: names.length }, "meeting");
-      return names;
+      debugLogger.debug("Process list refreshed", { count: procs.length }, "meeting");
+      return procs;
     } catch (err) {
       debugLogger.warn("Failed to fetch process list", { error: err.message }, "meeting");
       return [];

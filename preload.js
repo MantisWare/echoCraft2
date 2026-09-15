@@ -1242,6 +1242,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   meetingDetectionGetPreferences: () => ipcRenderer.invoke("meeting-detection-get-preferences"),
   meetingDetectionSetPreferences: (prefs) =>
     ipcRenderer.invoke("meeting-detection-set-preferences", prefs),
+  meetingDetectionGetRecentCaptureApps: () =>
+    ipcRenderer.invoke("meeting-detection-get-recent-capture-apps"),
   syncNotificationPreferences: (prefs) =>
     ipcRenderer.invoke("sync-notification-preferences", prefs),
   setSpeakerDiarizationEnabled: (enabled) =>

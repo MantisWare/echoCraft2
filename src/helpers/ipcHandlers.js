@@ -10652,6 +10652,14 @@ class IPCHandlers {
       }
     });
 
+    ipcMain.handle("meeting-detection-get-recent-capture-apps", async () => {
+      try {
+        return { success: true, apps: this.meetingDetectionEngine.getRecentCaptureApps() };
+      } catch (error) {
+        return { success: false, error: error.message, apps: [] };
+      }
+    });
+
     const NOTIFICATION_PREF_KEYS = new Set([
       "notificationsEnabled",
       "notifyMeetingDetection",

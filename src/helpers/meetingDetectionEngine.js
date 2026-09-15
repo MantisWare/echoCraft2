@@ -576,7 +576,28 @@ class MeetingDetectionEngine {
       event,
       variant,
       joinUrl,
+      // Attribution from the mic detector, so the card can name the app and
+      // offer to stop treating it as a meeting.
+      appId: data?.appId ?? null,
+      appName: data?.appName ?? null,
     });
+  }
+
+  // "Never for this app" on the card: the same thing as adding it in Settings,
+  // reached at the moment the false positive happens.
+  _ignoreDetectedApp(detection) {
+    const appId = detection?.data?.appId ?? null;
+    if (!appId) return;
+
+    const ignoredApps = [...new Set([...this.audioActivityDetector.getIgnoredApps(), appId])];
+    this.audioActivityDetector.setIgnoredApps(ignoredApps);
+    // Main holds no persistence for settings; the renderer store owns the list
+    // and writes it through the shared setting-updated channel.
+    broadcastToWindows("setting-updated", {
+      key: "meetingDetectionIgnoredApps",
+      value: ignoredApps,
+    });
+    debugLogger.info("App ignored for meeting detection from the prompt", { appId }, "meeting");
   }
 
   async handleNotificationResponse(detectionId, action) {
@@ -650,8 +671,9 @@ class MeetingDetectionEngine {
         });
 
         this.audioActivityDetector.resetPrompt();
-      } else if (action === "dismiss") {
+      } else if (action === "dismiss" || action === "ignore-app") {
         if (detection) {
+          if (action === "ignore-app") this._ignoreDetectedApp(detection);
           this._dismiss();
         }
       }
@@ -888,13 +910,25 @@ class MeetingDetectionEngine {
     if (typeof prefs?.audioDetection === "boolean") {
       this.preferences.audioDetection = prefs.audioDetection;
     }
+    if (Array.isArray(prefs?.ignoredApps)) {
+      this.audioActivityDetector.setIgnoredApps(prefs.ignoredApps);
+    }
 
     this._syncMeetingProcessDetector();
     this._syncAudioActivityDetector();
   }
 
   getPreferences() {
-    return { ...this.preferences };
+    return {
+      ...this.preferences,
+      ignoredApps: this.audioActivityDetector.getIgnoredApps?.() ?? [],
+    };
+  }
+
+  // Apps observed capturing this session, so Settings can offer them instead of
+  // making the user work out an app id.
+  getRecentCaptureApps() {
+    return this.audioActivityDetector.getRecentCaptureApps?.() ?? [];
   }
 
   start() {

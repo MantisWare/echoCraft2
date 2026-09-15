@@ -26,10 +26,17 @@ interface DetectionPresentation {
   titleKey?: "meetingNotification.title";
   bodyKey:
     | "meetingNotification.body.detected"
+    | "meetingNotification.body.detectedApp"
     | "meetingNotification.body.starting"
     | "meetingNotification.body.underway";
+  bodyValues?: { app: string };
   actionKey: "meetingNotification.start" | "meetingNotification.join";
   action: "start" | "join";
+  // Offered only when the mic evidence names an app, since the action has to
+  // say which app it will silence.
+  secondaryActionKey?: "meetingNotification.ignoreApp";
+  secondaryActionValues?: { app: string };
+  secondaryAction?: "ignore-app";
   dismissible: true;
   allowTitleWrap: false;
 }
@@ -64,11 +71,24 @@ export function getMeetingNotificationPresentation(
 
   const variant = data?.variant ?? "detected";
   const eventTitle = variant !== "detected" ? data?.event?.summary : null;
+  // A calendar-backed prompt already names the meeting, so the app is only
+  // worth mentioning when mic evidence is all we have.
+  const app = variant === "detected" && data?.appId ? (data.appName ?? data.appId) : null;
+
   return {
     ...(eventTitle ? { title: eventTitle } : { titleKey: "meetingNotification.title" }),
-    bodyKey: `meetingNotification.body.${variant}`,
+    ...(app
+      ? { bodyKey: "meetingNotification.body.detectedApp", bodyValues: { app } }
+      : { bodyKey: `meetingNotification.body.${variant}` }),
     actionKey: data?.joinUrl ? "meetingNotification.join" : "meetingNotification.start",
     action: data?.joinUrl ? "join" : "start",
+    ...(app
+      ? {
+          secondaryActionKey: "meetingNotification.ignoreApp",
+          secondaryActionValues: { app },
+          secondaryAction: "ignore-app",
+        }
+      : {}),
     dismissible: true,
     allowTitleWrap: false,
   };
