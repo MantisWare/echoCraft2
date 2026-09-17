@@ -80,7 +80,7 @@ export const VoicePill = forwardRef<HTMLDivElement, VoicePillProps>(function Voi
     !collapseToIdentity && (isRecording || expanded || (isPanel && !waveformOnlyWhileRecording));
   const showDivider = showCompactPill && waveformVisible && !isRecording;
   const dividerMargin = showCompactPill ? (showDivider ? 4 : 3) : 0;
-  const identitySize = 22;
+  const identitySize = 20;
   const floatingHover = !isPanel && state === "hover";
   const footprint = showCompactPill ? VOICE_PILL_FOOTPRINT.recording : VOICE_PILL_FOOTPRINT.idle;
 

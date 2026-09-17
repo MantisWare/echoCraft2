@@ -1,4 +1,4 @@
-/* Dictation window feature styles: the voice pill, its identity morph, the
+/* Dictation window feature styles: the voice pill, its identity mark, the
    expanding assistant / live-transcript panels, and their motion. Imported by
    index.css ahead of its own rules; nothing here shares selectors with the
    app-wide styles that remain there. */
@@ -149,14 +149,8 @@
   box-shadow: none;
 }
 
-/* The SVG geometry itself moves between identities: the listening ring opens
-   into the leaf contour, while its bars bend into the leaf spine and spark. */
 .voice-identity-svg {
   color: inherit;
-}
-
-.voice-identity-icon[data-agent-mode="true"] .voice-identity-svg {
-  color: var(--color-agent-brand);
 }
 
 .voice-identity-final-agent {
@@ -232,8 +226,8 @@
 }
 
 /* The Signal glow: a comet orbiting a breathing ambient halo around the
-   pill. Both identities light it for the thinking state only — brand blue
-   for dictation processing, the agent's purple for agent thinking. */
+   pill. Both identities light it for the thinking state only — EchoCraft
+   violet for dictation processing, the agent's purple for agent thinking. */
 .voice-pill-glow-anchor {
   position: relative;
   display: inline-flex;
@@ -250,10 +244,10 @@
 }
 
 .processing-signal-glow {
-  --signal-bright: #38bdf8;
-  --signal-core: #2563eb;
-  --signal-deep: #6366f1;
-  --signal-head: #eaf6ff;
+  --signal-bright: #c4b5fd;
+  --signal-core: #8b5cf6;
+  --signal-deep: #7c3aed;
+  --signal-head: #f5f3ff;
   --signal-halo-opacity: 0.8;
   --signal-comet-opacity: 0.95;
   position: absolute;
