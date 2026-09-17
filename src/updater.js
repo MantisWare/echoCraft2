@@ -1,11 +1,13 @@
 const { autoUpdater } = require("electron-updater");
-const { appUpdatesEnabled } = require("./helpers/updateCheckPolicy");
+const {
+  appUpdatesEnabled,
+  isAcceptableFeedVersion,
+} = require("./helpers/updateCheckPolicy");
 
-// This build publishes no releases of its own, and the only feed it could
-// reach is upstream OpenWhispr's — which would replace the app with a
-// different one. Every update path is inert until a feed exists for it.
-const AUTO_UPDATES_SUPPORTED = false;
-const UPDATES_UNSUPPORTED_MESSAGE = "Automatic updates are not available in this build";
+const AUTO_UPDATES_SUPPORTED = true;
+const UPDATE_FEED_URL =
+  "https://storage.mantisware.co.za/public.php/dav/files/T9p24tDSSKr5jG7/app/";
+const UPDATE_CHANNEL = "latest";
 
 class UpdateManager {
   constructor() {
@@ -29,50 +31,15 @@ class UpdateManager {
   }
 
   setupAutoUpdater() {
-    if (!AUTO_UPDATES_SUPPORTED) {
-      return;
-    }
-
     if (process.env.NODE_ENV === "development") {
       return;
     }
 
     autoUpdater.setFeedURL({
-      provider: "github",
-      owner: "OpenWhispr",
-      repo: "openwhispr",
-      private: false,
+      provider: "generic",
+      url: UPDATE_FEED_URL,
     });
-
-    // Use arch-specific update channel on macOS to prevent arm64/x64
-    // from downloading mismatched artifacts. Both builds publish to the
-    // same GitHub release, so without this they race on latest-mac.yml.
-    // Setting channel to e.g. 'latest-arm64' makes the updater look for
-    // 'latest-arm64-mac.yml' instead of the shared 'latest-mac.yml'.
-    if (process.platform === "darwin") {
-      let nativeArch = process.arch;
-
-      // Detect Rosetta: if an x64 build is running on Apple Silicon,
-      // sysctl.proc_translated returns "1". This self-heals users who
-      // got stuck on the x64 build from older releases.
-      if (process.arch === "x64") {
-        try {
-          const { execSync } = require("child_process");
-          const translated = execSync("sysctl -n sysctl.proc_translated", {
-            encoding: "utf8",
-            timeout: 3000,
-          }).trim();
-          if (translated === "1") {
-            console.log("🔄 Rosetta detected — switching update channel to arm64");
-            nativeArch = "arm64";
-          }
-        } catch {
-          // sysctl.proc_translated doesn't exist on real Intel Macs — ignore
-        }
-      }
-
-      autoUpdater.channel = nativeArch === "arm64" ? "latest-arm64" : "latest-x64";
-    }
+    autoUpdater.channel = UPDATE_CHANNEL;
 
     autoUpdater.autoDownload = false;
     autoUpdater.autoInstallOnAppQuit = true;
@@ -87,6 +54,12 @@ class UpdateManager {
         this.notifyRenderers("checking-for-update");
       },
       "update-available": (info) => {
+        if (!isAcceptableFeedVersion(info?.version)) {
+          this.updateAvailable = false;
+          this._suppressNotification = false;
+          this.notifyRenderers("update-not-available", info);
+          return;
+        }
         this.updateAvailable = true;
         if (info) {
           this.lastUpdateInfo = {
@@ -172,13 +145,6 @@ class UpdateManager {
 
   async checkForUpdates() {
     try {
-      if (!AUTO_UPDATES_SUPPORTED) {
-        return {
-          updateAvailable: false,
-          message: UPDATES_UNSUPPORTED_MESSAGE,
-        };
-      }
-
       if (process.env.NODE_ENV === "development") {
         return {
           updateAvailable: false,
@@ -190,7 +156,11 @@ class UpdateManager {
       this._suppressNotification = true;
       const result = await autoUpdater.checkForUpdates();
 
-      if (result?.isUpdateAvailable && result?.updateInfo) {
+      if (
+        result?.isUpdateAvailable &&
+        result?.updateInfo &&
+        isAcceptableFeedVersion(result.updateInfo.version)
+      ) {
         console.log("📋 Update available:", result.updateInfo.version);
         return {
           updateAvailable: true,
@@ -214,13 +184,6 @@ class UpdateManager {
 
   async downloadUpdate() {
     try {
-      if (!AUTO_UPDATES_SUPPORTED) {
-        return {
-          success: false,
-          message: UPDATES_UNSUPPORTED_MESSAGE,
-        };
-      }
-
       if (process.env.NODE_ENV === "development") {
         return {
           success: false,
@@ -239,6 +202,13 @@ class UpdateManager {
         return {
           success: true,
           message: "Update already downloaded. Ready to install.",
+        };
+      }
+
+      if (this.lastUpdateInfo && !isAcceptableFeedVersion(this.lastUpdateInfo.version)) {
+        return {
+          success: false,
+          message: "Refusing to download an EchoCraft v1 feed build",
         };
       }
 
@@ -338,10 +308,6 @@ class UpdateManager {
   }
 
   checkForUpdatesOnStartup() {
-    if (!AUTO_UPDATES_SUPPORTED) {
-      return;
-    }
-
     if (process.env.NODE_ENV !== "development") {
       setTimeout(() => {
         this._autoCheckForUpdates("Startup");
@@ -374,3 +340,6 @@ class UpdateManager {
 }
 
 module.exports = UpdateManager;
+module.exports.AUTO_UPDATES_SUPPORTED = AUTO_UPDATES_SUPPORTED;
+module.exports.UPDATE_FEED_URL = UPDATE_FEED_URL;
+module.exports.UPDATE_CHANNEL = UPDATE_CHANNEL;

@@ -58,7 +58,7 @@ test("thinking and recording keep the same persistent glow and pill roots", asyn
   assert.equal((recording.match(/rounded-full bg-current/g) || []).length, expectedBars);
 });
 
-test("one Signal glow serves both identities: blue processing, purple agent", async () => {
+test("one Signal glow serves both identities: EchoCraft violet processing, purple agent", async () => {
   const styles = readDictationStyles();
   const agentThinking = await renderPill("thinking", false, "right", { agentMode: true });
   // Listening must not glow in either identity: a glow before any transcript
@@ -66,6 +66,7 @@ test("one Signal glow serves both identities: blue processing, purple agent", as
   const agentListening = await renderPill("recording", false, "right", { agentMode: true });
 
   assert.match(styles, /\.processing-signal-glow\s*\{/);
+  assert.match(styles, /--signal-core: #8b5cf6/);
   assert.match(styles, /:root:not\(\.dark\) \.processing-signal-glow\s*\{/);
   assert.match(
     agentThinking,
@@ -179,7 +180,7 @@ test("the floating hover pill changes surface treatment without zooming", async 
   assert.match(hovered, /box-shadow:var\(--shadow-card-hover-subtle\)/);
   assert.doesNotMatch(hovered, /style="[^"]*transform:/);
   assert.match(hovered, footprint.idle);
-  assert.match(hovered, /<svg width="22" height="22"/);
+  assert.match(hovered, /<svg width="20" height="20"/);
 });
 
 test("the waveform pill keeps the normal compact logo footprint", async () => {
@@ -191,7 +192,7 @@ test("the waveform pill keeps the normal compact logo footprint", async () => {
   });
 
   for (const markup of [idle, recording, liveTranscript]) {
-    assert.match(markup, /<svg width="22" height="22"/);
+    assert.match(markup, /<svg width="20" height="20"/);
   }
 });
 
@@ -278,34 +279,28 @@ test("Agent thinking keeps the purple glow on the same persistent pill root", as
   assert.match(agentThinking, /data-agent-beam-active="true"/);
 });
 
-test("the stable identity box stages the sound-bars into the Agent mark", async () => {
+test("the stable identity box is the EchoCraft mark, crossfading to Agent", async () => {
   const idle = await renderPill("idle", false);
   const agentThinking = await renderPill("thinking", false, "right", {
     agentMode: true,
   });
 
   assert.match(idle, /data-agent-mode="false"/);
-  assert.match(idle, /voice-identity-morph-shell/);
-  assert.match(idle, /voice-identity-morph-bar-left/);
-  assert.match(idle, /voice-identity-morph-bar-center/);
-  assert.match(idle, /voice-identity-morph-bar-right/);
+  assert.match(idle, /voice-identity-echocraft/);
+  assert.match(idle, /viewBox="0 0 15 15"/);
+  assert.doesNotMatch(idle, /voice-identity-morph-bar/);
   assert.match(agentThinking, /data-agent-mode="true"/);
   assert.match(agentThinking, /voice-identity-final-agent/);
 });
 
-test("the voice identity performs an actual SVG geometry morph", async () => {
-  const { resolveVoiceIdentityMorphPaths } =
-    await import("../../src/components/dictation/voiceIdentityMorph.ts");
-  const listening = resolveVoiceIdentityMorphPaths(0);
-  const midpoint = resolveVoiceIdentityMorphPaths(0.5);
-  const agent = resolveVoiceIdentityMorphPaths(1);
+test("the voice identity crossfades the EchoCraft mark into the Agent overlay", async () => {
+  const idle = await renderPill("idle", false);
+  const agentThinking = await renderPill("thinking", false, "right", {
+    agentMode: true,
+  });
 
-  assert.notEqual(listening.shell, midpoint.shell);
-  assert.notEqual(midpoint.shell, agent.shell);
-  assert.notEqual(listening.centerBar, midpoint.centerBar);
-  assert.notEqual(midpoint.centerBar, agent.centerBar);
-  assert.equal(listening.agentOpacity, 0);
-  assert.ok(midpoint.sparkOpacity > 0);
-  assert.equal(agent.agentOpacity, 1);
-  assert.equal(agent.constructionOpacity, 0);
+  assert.match(idle, /voice-identity-echocraft[^>]*opacity:1/);
+  assert.match(idle, /voice-identity-svg[^>]*opacity:0/);
+  assert.match(agentThinking, /voice-identity-echocraft[^>]*opacity:0/);
+  assert.match(agentThinking, /voice-identity-svg[^>]*opacity:1/);
 });

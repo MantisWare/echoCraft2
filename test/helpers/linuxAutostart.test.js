@@ -104,6 +104,7 @@ test(
     const { buildDesktopFileContents } = await load();
 
     const contents = buildDesktopFileContents("/a/b/EchoCraft.AppImage", "echocraft");
+    assert.match(contents, /^Name=EchoCraft$/m);
     assert.match(contents, /^Exec="\/a\/b\/EchoCraft\.AppImage" --hidden$/m);
     assert.match(contents, /^Icon=echocraft$/m);
     assert.match(contents, /^X-GNOME-Autostart-enabled=true$/m);
@@ -230,7 +231,7 @@ test(
 
     writeEntry(
       getDesktopFilePath(),
-      "[Desktop Entry]\nType=Application\nName=EchoCraft 2.0\nX-GNOME-Autostart-enabled=false\n"
+      "[Desktop Entry]\nType=Application\nName=EchoCraft\nX-GNOME-Autostart-enabled=false\n"
     );
     assert.equal(isAutostartEnabled(), false);
   })
@@ -243,7 +244,7 @@ test(
 
     writeEntry(
       getDesktopFilePath(),
-      "[Desktop Entry]\nType=Application\nName=EchoCraft 2.0\nHidden=TRUE\n"
+      "[Desktop Entry]\nType=Application\nName=EchoCraft\nHidden=TRUE\n"
     );
     assert.equal(isAutostartEnabled(), false);
   })

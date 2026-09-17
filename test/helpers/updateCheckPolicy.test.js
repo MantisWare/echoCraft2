@@ -28,3 +28,14 @@ test("checks stay enabled by default before renderer prefs arrive", async () => 
   assert.equal(appUpdatesEnabled({}), true);
   assert.equal(appUpdatesEnabled({ notificationsEnabled: true, notifyUpdates: true }), true);
 });
+
+test("feed versions below 2.0.1 are never installable updates", async () => {
+  const { isAcceptableFeedVersion, MIN_FEED_VERSION } = await load();
+
+  assert.equal(MIN_FEED_VERSION, "2.0.1");
+  assert.equal(isAcceptableFeedVersion("0.11.12"), false);
+  assert.equal(isAcceptableFeedVersion("2.0.0"), false);
+  assert.equal(isAcceptableFeedVersion("2.0.1"), true);
+  assert.equal(isAcceptableFeedVersion("2.0.6"), true);
+  assert.equal(isAcceptableFeedVersion(undefined), false);
+});
