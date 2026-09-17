@@ -24,10 +24,12 @@ pkill -f "EchoCraft" 2>/dev/null || true
 pkill -f "echocraft" 2>/dev/null || true
 pkill -f "Electron Helper.*EchoCraft" 2>/dev/null || true
 
-echo "Removing /Applications/EchoCraft 2.0.app (requires admin)..."
+echo "Removing /Applications/EchoCraft.app (requires admin)..."
+remove_target "/Applications/EchoCraft.app"
 remove_target "/Applications/EchoCraft 2.0.app"
 
 echo "Purging Application Support data..."
+remove_target "$HOME/Library/Application Support/EchoCraft"
 remove_target "$HOME/Library/Application Support/EchoCraft 2.0"
 remove_target "$HOME/Library/Application Support/EchoCraft-development"
 remove_target "$HOME/Library/Application Support/EchoCraft-staging"
@@ -36,6 +38,7 @@ remove_target "$HOME/Library/Application Support/com.mantisware.echocraft"
 echo "Removing caches, logs, and saved state..."
 remove_target "$HOME/Library/Caches/com.mantisware.echocraft"
 remove_target "$HOME/Library/Preferences/com.mantisware.echocraft.plist"
+remove_target "$HOME/Library/Logs/EchoCraft"
 remove_target "$HOME/Library/Logs/EchoCraft 2.0"
 remove_target "$HOME/Library/Saved Application State/com.mantisware.echocraft.savedState"
 remove_target "$HOME/.cache/echocraft"

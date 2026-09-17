@@ -14,7 +14,7 @@ onboarding).
 | --------------------------------------------- | -------- | ---- | ---------------------------------------------------------------------------------- |
 | `api.openwhispr.com`                          | HTTPS    | 443  | Cloud API: transcription, sync, agent reasoning, settings, usage.                  |
 | `auth.openwhispr.com`                         | HTTPS    | 443  | Account sign-in and session refresh (Better Auth).                                 |
-| `github.com`, `objects.githubusercontent.com` | HTTPS    | 443  | Application auto-update (release artifacts via electron-updater, GitHub provider). |
+| `storage.mantisware.co.za`                    | HTTPS    | 443  | Application auto-update (generic electron-updater feed and release artifacts). |
 
 ## Required for streaming transcription
 

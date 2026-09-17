@@ -135,7 +135,7 @@ jobs:
           resources/bin/linux-system-audio-helper probe | grep '"supportsNativeCapture":true'
 
       - name: Build Application
-        run: npm run build:linux -- --publish always
+        run: npm run build:linux -- --publish never
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           VITE_AUTH_URL: ${{ vars.VITE_AUTH_URL || 'https://auth.openwhispr.com' }}
@@ -243,16 +243,13 @@ jobs:
           echo "GOOGLE_CALENDAR_CLIENT_SECRET=${{ secrets.GOOGLE_CALENDAR_CLIENT_SECRET }}" >> .env
           echo "MICROSOFT_CALENDAR_CLIENT_ID=${{ secrets.MICROSOFT_CALENDAR_CLIENT_ID }}" >> .env
 
-      - name: Build and Sign Application
-        run: npm run build:win -- --publish always
+      - name: Build Application
+        run: npm run build:win -- --publish never --config electron-builder.unsigned-win.json
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           VITE_AUTH_URL: ${{ vars.VITE_AUTH_URL || 'https://auth.openwhispr.com' }}
           VITE_OPENWHISPR_API_URL: ${{ vars.VITE_OPENWHISPR_API_URL }}
           VITE_OPENWHISPR_OAUTH_CALLBACK_URL: ${{ vars.VITE_OPENWHISPR_OAUTH_CALLBACK_URL }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
 
   build-macos:
     needs: tests
@@ -363,7 +360,7 @@ jobs:
           echo "MICROSOFT_CALENDAR_CLIENT_ID=${{ secrets.MICROSOFT_CALENDAR_CLIENT_ID }}" >> .env
 
       - name: Build Application (${{ matrix.arch }})
-        run: npm run build:mac -- --${{ matrix.arch }} --publish always
+        run: npm run build:mac -- --${{ matrix.arch }} --publish never
         env:
           TARGET_ARCH: ${{ matrix.arch }}
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -378,18 +375,11 @@ jobs:
 
       - name: Verify packaged macOS native binaries
         run: |
-          APP_PATH=$(ls -d dist/mac*/OpenWhispr.app | head -n1)
+          APP_PATH=$(ls -d dist/mac*/EchoCraft.app | head -n1)
           for bin in macos-audio-tap macos-globe-listener macos-fast-paste macos-mic-listener macos-text-monitor macos-media-remote; do
             test -x "$APP_PATH/Contents/Resources/bin/$bin" || { echo "Missing in bundle: $bin"; exit 1; }
           done
           node scripts/verify-macos-parakeet.js "$APP_PATH"
-
-      - name: Upload arch-specific update metadata
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: |
-          cp dist/latest-mac.yml "dist/latest-${{ matrix.arch }}-mac.yml"
-          gh release upload "$RELEASE_TAG" "dist/latest-${{ matrix.arch }}-mac.yml" --clobber
 
       - name: Cleanup Certificates
         if: always()

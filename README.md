@@ -76,21 +76,18 @@ Everything else ships with the app. Speech models, the local LLM server, the vec
 
 ## 📦 Download & Installation
 
-Grab the latest build from [Releases](https://github.com/MantisWare/echoCraft2/releases/latest):
+Grab the latest build from the [EchoCraft download share](https://storage.mantisware.co.za/s/T9p24tDSSKr5jG7):
 
 | Platform              | Download                                  |
 | --------------------- | ----------------------------------------- |
 | macOS (Apple Silicon) | `.dmg`                                    |
-| macOS (Intel) \*      | `.dmg`                                    |
 | Windows               | `.exe` (NSIS installer)                   |
 | Linux                 | `.AppImage` / `.deb` / `.rpm` / `.tar.gz` |
-
-\* On Intel Macs, live speaker identification and voice fingerprinting are unavailable — they depend on ONNX Runtime, which [stopped shipping macOS x86_64 binaries in 1.24](https://github.com/microsoft/onnxruntime/releases/tag/v1.24.1). Meetings still record and transcribe normally, and notes search falls back to keyword matching.
 
 Unsigned local builds are quarantined by Gatekeeper. Clear the flag after installing:
 
 ```bash
-xattr -dr com.apple.quarantine "/Applications/EchoCraft 2.0.app"
+xattr -dr com.apple.quarantine "/Applications/EchoCraft.app"
 ```
 
 ---
@@ -119,12 +116,12 @@ This starts the Vite dev server and Electron together. The embedding model for s
 ### 3. Build the Application
 
 ```bash
-./build-macos.sh          # DMG for this Mac
-./build-windows.sh        # NSIS installer
-./build-linux.sh          # AppImage + deb
+./build-macos.sh          # local DMG for this Mac (does not publish)
+./build-windows.sh        # local NSIS installer
+./build-linux.sh          # local AppImage + deb
 ```
 
-Each script compiles native helpers, downloads sidecars, builds the renderer, and packs the installer into `dist/`. Pass `--help` to any of them for architecture, target, and signing options.
+Each script compiles native helpers, downloads sidecars, builds the renderer, and packs the installer into `dist/`. Pass `--help` to any of them for architecture, target, and signing options. To publish a signed update, use the `release-*.sh` scripts below.
 
 ---
 
@@ -216,17 +213,16 @@ agent-skills/           CLI skill for AI coding agents
 
 ## 📦 Building for Distribution
 
-macOS owns the version number: every macOS build bumps the patch version automatically, and the Windows and Linux builds package whatever version macOS last produced, so one release carries one build number everywhere.
+Production releases are signed locally on each native OS and uploaded to the Nextcloud update feed. See **[docs/RELEASING.md](docs/RELEASING.md)**.
 
 ```bash
-./build-macos.sh                      # 2.0.3 -> 2.0.4, then an unsigned DMG
-./build-macos.sh --no-bump            # rebuild the current version as-is
-./build-macos.sh --bump minor         # 2.0.3 -> 2.1.0
-./build-macos.sh --signed             # Developer ID + notarization
-./build-macos.sh --arch x64           # Intel build
+./release-macos.sh        # bump patch, sign, notarize, upload
+./release-windows.sh      # same version, sign, upload
+./release-linux.sh        # same version, upload
+./upload.sh               # upload whatever complete platforms are already in dist/
 ```
 
-Signed macOS builds need a Developer ID certificate plus notarization credentials; signed Windows builds use Azure Trusted Signing. Both default to unsigned local builds.
+Only macOS changes `package.json`. Windows and Linux reuse that version. `./build-macos.sh` is still for local unsigned DMGs and does not publish. Signed Windows releases use `CSC_LINK` / `CSC_KEY_PASSWORD`, not Azure Trusted Signing.
 
 ---
 
@@ -265,7 +261,7 @@ For anything else, see **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** and enable d
 - **[LOCAL_WHISPER_SETUP.md](LOCAL_WHISPER_SETUP.md)** — Local speech-to-text setup in depth
 - **[DEBUG.md](DEBUG.md)** — Debug logging and log file locations
 - **[SECURITY.md](SECURITY.md)** — Reporting vulnerabilities
-- **[CHANGELOG.md](CHANGELOG.md)** — Release history
+- **[docs/RELEASING.md](docs/RELEASING.md)** — Signed local releases and the Nextcloud update feed
 - **[CLAUDE.md](CLAUDE.md)** — Architecture reference for AI coding assistants
 - **[docs/network-allowlist.md](docs/network-allowlist.md)** — Outbound hosts for locked-down networks
 - **[examples/](examples/)** — Custom ASR shim for self-hosted transcription

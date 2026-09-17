@@ -34,8 +34,8 @@ Options:
   --arch <x64|arm64>            Target architecture (default: host architecture)
   --targets "<list>"            electron-builder linux targets
                                 (default: "AppImage deb"; also "rpm", "tar.gz")
-  --publish                     Publish to the GitHub release configured in
-                                electron-builder.json (default: never publish)
+  --publish                     Generate updater metadata for the generic Nextcloud
+                                feed. Does not upload; use ./release-linux.sh.
   --install                     Run "npm ci" before building
   --clean                       Deprecated no-op: dist/ and src/dist/ are always
                                 deleted before building
@@ -47,8 +47,8 @@ Examples:
   ./build-linux.sh                                   # AppImage + deb for this machine
   ./build-linux.sh --targets "AppImage deb rpm tar.gz"
 
-The version is not bumped here. Only ./build-macos.sh bumps it, so all three
-platforms ship the same build number; run that first to cut a new version.
+The version is not bumped here. Cut a new version with ./release-macos.sh
+(or a local DMG with ./build-macos.sh) so all three platforms share one number.
 EOF
 }
 

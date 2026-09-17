@@ -34,14 +34,15 @@ Options:
                                 (default: patch). macOS is the only platform that
                                 bumps; Windows and Linux builds reuse this version.
   --no-bump                     Build the current version without bumping it
-  --signed                      Sign and notarize with the release identity from
-                                electron-builder.json. Requires the "Gizmo Labs Inc."
-                                Developer ID cert in the keychain plus notarization
-                                credentials (APPLE_API_KEY + APPLE_API_KEY_ID +
-                                APPLE_API_ISSUER, or APPLE_ID + APPLE_APP_SPECIFIC_PASSWORD
-                                + APPLE_TEAM_ID). Default is an unsigned local build.
-  --publish                     Publish to the GitHub release configured in
-                                electron-builder.json (default: never publish)
+  --signed                      Sign and notarize with Developer ID Application:
+                                Waldo Marais (Z2BVWT9X93). Requires the cert in the
+                                keychain (or CSC_LINK + CSC_KEY_PASSWORD) plus
+                                notarization credentials (APPLE_API_KEY +
+                                APPLE_API_KEY_ID + APPLE_API_ISSUER, or APPLE_ID +
+                                APPLE_APP_SPECIFIC_PASSWORD + APPLE_TEAM_ID).
+                                Default is an unsigned local build.
+  --publish                     Generate updater metadata for the generic Nextcloud
+                                feed. Does not upload; use ./release-macos.sh.
   --install                     Run "npm ci" before building
   --clean                       Deprecated no-op: dist/ and src/dist/ are always
                                 deleted before building
@@ -197,5 +198,5 @@ if [[ "$SIGNED" != "true" ]]; then
   echo
   echo "This DMG is unsigned. Gatekeeper will quarantine it on other Macs; after"
   echo "installing, clear the flag with:"
-  echo "  xattr -dr com.apple.quarantine \"/Applications/EchoCraft 2.0.app\""
+  echo "  xattr -dr com.apple.quarantine \"/Applications/EchoCraft.app\""
 fi

@@ -35,11 +35,10 @@ Options:
   --arch <x64|arm64>            Target architecture (default: host architecture)
   --targets "<list>"            electron-builder win targets
                                 (default: "nsis"; also "portable")
-  --signed                      Sign with Azure Trusted Signing from electron-builder.json.
-                                Requires AZURE_TENANT_ID, AZURE_CLIENT_ID and
-                                AZURE_CLIENT_SECRET. Default is an unsigned local build.
-  --publish                     Publish to the GitHub release configured in
-                                electron-builder.json (default: never publish)
+  --signed                      Sign with CSC_LINK + CSC_KEY_PASSWORD (or WIN_CSC_*).
+                                Default is an unsigned local build.
+  --publish                     Generate updater metadata for the generic Nextcloud
+                                feed. Does not upload; use ./release-windows.sh.
   --install                     Run "npm ci" before building
   --clean                       Deprecated no-op: dist/ and src/dist/ are always
                                 deleted before building
@@ -51,8 +50,8 @@ Examples:
   ./build-windows.sh                          # unsigned NSIS installer
   ./build-windows.sh --targets "nsis portable"
 
-The version is not bumped here. Only ./build-macos.sh bumps it, so all three
-platforms ship the same build number; run that first to cut a new version.
+The version is not bumped here. Cut a new version with ./release-macos.sh
+(or a local DMG with ./build-macos.sh) so all three platforms share one number.
 EOF
 }
 

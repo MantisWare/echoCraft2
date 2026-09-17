@@ -7,10 +7,13 @@ set -uo pipefail
 
 # 0. Set SUID bit on chrome-sandbox (required by Electron for Linux sandboxing)
 #    Find it wherever dpkg placed the package files, rather than hardcoding /opt/...
-CHROME_SANDBOX=$(dpkg -L echocraft 2>/dev/null | grep chrome-sandbox || echo "")
+CHROME_SANDBOX=$(dpkg -L echo-craft 2>/dev/null | grep chrome-sandbox || echo "")
+if [ -z "$CHROME_SANDBOX" ]; then
+  CHROME_SANDBOX=$(dpkg -L echocraft 2>/dev/null | grep chrome-sandbox || echo "")
+fi
 if [ -z "$CHROME_SANDBOX" ]; then
   # Fallback: conventional electron-builder install path
-  CHROME_SANDBOX="/opt/EchoCraft 2.0/chrome-sandbox"
+  CHROME_SANDBOX="/opt/EchoCraft/chrome-sandbox"
 fi
 if [ -f "$CHROME_SANDBOX" ]; then
   chown root:root "$CHROME_SANDBOX" 2>/dev/null || true

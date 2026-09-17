@@ -26,6 +26,7 @@ const LOCKFILE_PATH = path.join(ROOT, "package-lock.json");
 
 const RELEASE_TYPES = new Set(["major", "minor", "patch"]);
 const SEMVER_RE = /^(\d+)\.(\d+)\.(\d+)$/;
+const MIN_RELEASE_VERSION = "2.0.1";
 
 function parseArgs(argv) {
   const args = argv.slice(2);
@@ -44,18 +45,37 @@ function parseArgs(argv) {
   return { release, dryRun };
 }
 
-function nextVersion(current, release) {
-  if (SEMVER_RE.test(release)) return release;
+function compareSemver(left, right) {
+  const a = SEMVER_RE.exec(left);
+  const b = SEMVER_RE.exec(right);
+  if (a === null || b === null) return null;
+  for (let index = 1; index <= 3; index += 1) {
+    const delta = Number(a[index]) - Number(b[index]);
+    if (delta !== 0) return delta < 0 ? -1 : 1;
+  }
+  return 0;
+}
 
-  const match = SEMVER_RE.exec(current);
-  if (match === null) {
-    throw new Error(`package.json version "${current}" is not a plain X.Y.Z semver`);
+function nextVersion(current, release) {
+  let next;
+  if (SEMVER_RE.test(release)) {
+    next = release;
+  } else {
+    const match = SEMVER_RE.exec(current);
+    if (match === null) {
+      throw new Error(`package.json version "${current}" is not a plain X.Y.Z semver`);
+    }
+
+    const [major, minor, patch] = match.slice(1).map(Number);
+    if (release === "major") next = `${major + 1}.0.0`;
+    else if (release === "minor") next = `${major}.${minor + 1}.0`;
+    else next = `${major}.${minor}.${patch + 1}`;
   }
 
-  const [major, minor, patch] = match.slice(1).map(Number);
-  if (release === "major") return `${major + 1}.0.0`;
-  if (release === "minor") return `${major}.${minor + 1}.0`;
-  return `${major}.${minor}.${patch + 1}`;
+  if ((compareSemver(next, MIN_RELEASE_VERSION) ?? -1) < 0) {
+    return MIN_RELEASE_VERSION;
+  }
+  return next;
 }
 
 // Rewrites only the top-level "version" string, so the file keeps its existing
@@ -112,9 +132,17 @@ function main() {
   console.log(`version ${current} -> ${next}${lockfileUpdated ? " (package-lock.json synced)" : ""}`);
 }
 
-try {
-  main();
-} catch (error) {
-  console.error(`bump-version: ${error.message}`);
-  process.exit(1);
+if (require.main === module) {
+  try {
+    main();
+  } catch (error) {
+    console.error(`bump-version: ${error.message}`);
+    process.exit(1);
+  }
 }
+
+module.exports = {
+  MIN_RELEASE_VERSION,
+  compareSemver,
+  nextVersion,
+};

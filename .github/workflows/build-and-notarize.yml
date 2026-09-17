@@ -233,22 +233,14 @@ jobs:
           echo "GOOGLE_CALENDAR_CLIENT_SECRET=${{ secrets.GOOGLE_CALENDAR_CLIENT_SECRET }}" >> .env
           echo "MICROSOFT_CALENDAR_CLIENT_ID=${{ secrets.MICROSOFT_CALENDAR_CLIENT_ID }}" >> .env
 
-      - name: Build and Sign Application
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            npm run build:win -- --publish never --config electron-builder.unsigned-win.json
-          else
-            npm run build:win -- --publish never
-          fi
+      - name: Build Application
+        run: npm run build:win -- --publish never --config electron-builder.unsigned-win.json
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
           VITE_AUTH_URL: ${{ vars.VITE_AUTH_URL || 'https://auth.openwhispr.com' }}
           VITE_OPENWHISPR_API_URL: ${{ vars.VITE_OPENWHISPR_API_URL }}
           VITE_OPENWHISPR_OAUTH_CALLBACK_URL: ${{ vars.VITE_OPENWHISPR_OAUTH_CALLBACK_URL }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -382,7 +374,7 @@ jobs:
 
       - name: Verify packaged macOS native binaries
         run: |
-          APP_PATH=$(ls -d dist/mac*/OpenWhispr.app | head -n1)
+          APP_PATH=$(ls -d dist/mac*/EchoCraft.app | head -n1)
           for bin in macos-audio-tap macos-globe-listener macos-fast-paste macos-mic-listener macos-text-monitor macos-media-remote; do
             test -x "$APP_PATH/Contents/Resources/bin/$bin" || { echo "Missing in bundle: $bin"; exit 1; }
           done

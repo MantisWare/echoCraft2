@@ -1,7 +1,12 @@
 {
   "appId": "com.mantisware.echocraft",
   "afterPack": "scripts/afterPack.js",
-  "productName": "EchoCraft 2.0",
+  "productName": "EchoCraft",
+  "artifactName": "${productName}-${platform}-${arch}.${ext}",
+  "publish": {
+    "provider": "generic",
+    "url": "https://storage.mantisware.co.za/public.php/dav/files/T9p24tDSSKr5jG7/app/"
+  },
   "protocols": {
     "name": "EchoCraft Protocol",
     "schemes": ["echocraft"]
@@ -151,7 +156,7 @@
     "hardenedRuntime": true,
     "entitlements": "resources/mac/entitlements.mac.plist",
     "entitlementsInherit": "resources/mac/entitlements.mac.plist",
-    "identity": "Gizmo Labs Inc. (T832773L2J)",
+    "identity": "Waldo Marais (Z2BVWT9X93)",
     "notarize": true,
     "extraResources": [{
       "from": "src/assets/Assets.car",
@@ -170,11 +175,9 @@
   "win": {
     "target": ["nsis", "portable"],
     "icon": "src/assets/icon.ico",
-    "azureSignOptions": {
-      "endpoint": "https://eus.codesigning.azure.net/",
-      "certificateProfileName": "openwhispr-release",
-      "codeSigningAccountName": "OpenWhispr",
-      "publisherName": "CN=Gizmo Labs Inc., O=Gizmo Labs Inc., L=Wilmington, S=Delaware, C=US"
+    "verifyUpdateCodeSignature": true,
+    "signtoolOptions": {
+      "publisherName": "MANTISWARE"
     },
     "extraResources": [{
       "from": "resources/bin/nircmd.exe",
@@ -185,7 +188,18 @@
     "target": ["AppImage", "deb", "rpm", "tar.gz"],
     "icon": "src/assets/icon.png",
     "category": "Utility",
-    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
+    "executableName": "echocraft",
+    "synopsis": "AI-powered voice-to-text application",
+    "description": "EchoCraft - Voice-to-text transcription with AI assistant",
+    "maintainer": "MANTISWARE",
+    "vendor": "MANTISWARE",
+    "desktop": {
+      "entry": {
+        "Name": "EchoCraft",
+        "Comment": "Voice-to-text transcription with AI",
+        "Keywords": "voice;speech;transcription;dictation;ai;whisper"
+      }
+    }
   },
   "flatpak": {
     "runtime": "org.freedesktop.Platform",
@@ -250,12 +264,18 @@
   "nsis": {
     "oneClick": false,
     "allowToChangeInstallationDirectory": true,
+    "perMachine": false,
     "createDesktopShortcut": true,
     "createStartMenuShortcut": true,
+    "shortcutName": "EchoCraft",
+    "artifactName": "${productName}-${platform}-${arch}.${ext}",
     "include": "resources/nsis/installer.nsh"
   },
+  "portable": {
+    "artifactName": "${productName}-${platform}-${arch}-portable.${ext}"
+  },
   "dmg": {
-    "title": "EchoCraft 2.0",
+    "title": "EchoCraft ${version}",
     "icon": "src/assets/icon.icns",
     "window": {
       "width": 540,

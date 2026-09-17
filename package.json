@@ -1,6 +1,6 @@
 {
-  "name": "echocraft",
-  "version": "2.0.5",
+  "name": "echo-craft",
+  "version": "2.0.6",
   "description": "A desktop dictation application using whisper.cpp for speech-to-text transcription",
   "main": "main.js",
   "private": true,
@@ -79,7 +79,11 @@
     "quality-check": "npm run format:check && npm run typecheck",
     "i18n:check": "node scripts/check-i18n.js",
     "preview": "cd src && vite preview",
-    "clean": "node cleanup.js"
+    "clean": "node cleanup.js",
+    "release:mac": "node scripts/release.js mac",
+    "release:win": "node scripts/release.js win",
+    "release:linux": "node scripts/release.js linux",
+    "upload": "node scripts/upload.js"
   },
   "keywords": [
     "dictation",
@@ -90,8 +94,8 @@
     "desktop-app"
   ],
   "author": {
-    "name": "OpenWhispr Team",
-    "email": "support@openwhispr.com"
+    "name": "MANTISWARE",
+    "email": "support@mantisware.co.za"
   },
   "license": "MIT",
   "devDependencies": {
