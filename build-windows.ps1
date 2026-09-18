@@ -35,7 +35,10 @@ Options:
                                 Default is an unsigned local build.
   --publish                     Generate updater metadata for the generic Nextcloud
                                 feed. Does not upload; use .\release-windows.ps1.
-  --install                     Run "npm ci" before building
+  --install                     Deprecated no-op: npm ci always runs unless
+                                --skip-install is passed
+  --skip-install                Skip npm ci (only safe when node_modules is already
+                                complete, including vite and electron-builder)
   --clean                       Deprecated no-op: dist/ and src/dist/ are always
                                 deleted before building
   --skip-prep                   Skip the native compile + sidecar download step
@@ -95,7 +98,7 @@ $Arch = ''
 $Targets = 'nsis'
 $Publish = 'never'
 $Signed = $false
-$Install = $false
+$Install = $true
 $SkipPrep = $false
 
 $scriptArgs = @($args)
@@ -133,6 +136,11 @@ while ($i -lt $scriptArgs.Count) {
     }
     '--install' {
       $Install = $true
+      $i += 1
+      break
+    }
+    '--skip-install' {
+      $Install = $false
       $i += 1
       break
     }
@@ -186,15 +194,9 @@ function Require-WindowsBuildDeps {
     return
   }
   Write-ErrorLine 'error: node_modules is incomplete (vite / electron-builder not installed).'
-  Write-ErrorLine '       From this repo, with Node 24, run:'
-  Write-ErrorLine '         npm ci'
-  Write-ErrorLine '       or rerun with --install. Do not use --omit=dev; the Windows'
-  Write-ErrorLine '       build needs devDependencies. Then retry .\build-windows.ps1.'
+  Write-ErrorLine '       npm ci --include=dev should have installed them. Check that Node 24'
+  Write-ErrorLine '       is on PATH and that package-lock.json matches package.json, then retry.'
   exit 1
-}
-
-if (-not $Install) {
-  Require-WindowsBuildDeps
 }
 
 if ([string]::IsNullOrEmpty($Arch)) {
@@ -246,9 +248,14 @@ if (-not (Test-Path -LiteralPath '.env')) {
 $version = (Get-Content -LiteralPath 'package.json' -Raw | ConvertFrom-Json).version
 
 if ($Install) {
-  Invoke-Native -FilePath $npmPath -NativeArgs @('ci')
-  Require-WindowsBuildDeps
+  if ($env:NODE_ENV -eq 'production') {
+    Write-Output 'note: NODE_ENV=production would skip devDependencies; installing all deps for the build'
+  }
+  Write-Output 'Installing npm dependencies (npm ci --include=dev)...'
+  Invoke-Native -FilePath $npmPath -NativeArgs @('ci', '--include=dev')
 }
+
+Require-WindowsBuildDeps
 
 # Artifacts from an earlier version or target survive in dist/, so they would be
 # picked up by the listing at the end of this script and shipped by --publish.
