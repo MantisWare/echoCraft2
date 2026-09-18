@@ -82,6 +82,8 @@ function Invoke-Native {
 
 function Invoke-NodePrint {
   param([Parameter(Mandatory)][string]$Expression)
+  # Windows PowerShell strips quotes inside native argv, so callers must not
+  # pass JS that contains quoted strings (split("."), require("./file"), …).
   $output = & $script:NodePath -p $Expression
   if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
@@ -203,7 +205,8 @@ $expectedNode = ''
 if (Test-Path -LiteralPath '.nvmrc') {
   $expectedNode = (Get-Content -LiteralPath '.nvmrc' -TotalCount 1).Trim()
 }
-$nodeMajor = Invoke-NodePrint 'process.versions.node.split(".")[0]'
+$nodeVersion = Invoke-NodePrint 'process.versions.node'
+$nodeMajor = ($nodeVersion -split '\.')[0]
 if ($expectedNode -and $nodeMajor -ne $expectedNode) {
   Write-Output "warning: Node $nodeMajor in use, project pins Node $expectedNode (.nvmrc)."
   Write-Output "         Use Node $expectedNode before installing dependencies, or the"
@@ -218,7 +221,7 @@ if (-not (Test-Path -LiteralPath '.env')) {
 
 # Packages whatever version macOS last built, so one release carries one
 # version across all three platforms.
-$version = Invoke-NodePrint 'require("./package.json").version'
+$version = (Get-Content -LiteralPath 'package.json' -Raw | ConvertFrom-Json).version
 
 if ($Install) {
   Invoke-Native -FilePath $npmPath -NativeArgs @('ci')
