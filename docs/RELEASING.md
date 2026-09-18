@@ -23,7 +23,7 @@ Supported release targets: macOS arm64, Windows x64, Linux x64. Intel macOS and 
 | Platform | Host | Notes |
 | -------- | ---- | ----- |
 | macOS | Apple Silicon Mac | Xcode command line tools, Developer ID Application cert in the keychain or `CSC_LINK` |
-| Windows | x64 Windows | `CSC_LINK` / `CSC_KEY_PASSWORD` for an Authenticode certificate whose publisher includes `MANTISWARE` |
+| Windows | x64 Windows (PowerShell 5.1 or 7) | `CSC_LINK` / `CSC_KEY_PASSWORD` for an Authenticode certificate whose publisher includes `MANTISWARE` |
 | Linux | x64 Linux | No package signature; AppImage/deb/rpm/tar.gz are uploaded after local packaging |
 
 Use Node 24 (see `.nvmrc`). Do not regenerate `package-lock.json` with another major version.
@@ -36,7 +36,7 @@ Only macOS bumps the version. `./release-macos.sh` defaults to a patch bump, the
 ./release-macos.sh                 # 2.0.5 -> 2.0.6, then sign, notarize, upload
 ./release-macos.sh --bump minor    # 2.0.5 -> 2.1.0
 ./release-macos.sh --no-bump       # rebuild and republish the current version
-./release-windows.sh               # does not bump
+.\release-windows.ps1              # does not bump
 ./release-linux.sh                 # does not bump
 ```
 
@@ -58,17 +58,21 @@ A Nextcloud password that ever lived in v1 git history must be treated as compro
 
 ```bash
 ./release-macos.sh       # Apple Silicon Mac (bumps patch by default)
-./release-windows.sh     # Windows x64 (Git Bash / MSYS2)
+.\release-windows.ps1    # Windows x64 (PowerShell)
 ./release-linux.sh       # Linux x64
 ./upload.sh              # upload whatever complete platforms are already in dist/
+.\upload.ps1             # same as upload.sh, from PowerShell
 
 ./release-macos.sh --dry-run --skip-build
 ./upload.sh --dry-run
+.\upload.ps1 --dry-run
 ```
+
+If PowerShell blocks the `.ps1` files (`running scripts is disabled on this system`), allow local scripts once with `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`.
 
 `npm run release:mac`, `release:win`, and `release:linux` are aliases for the same Node runner. `--dry-run` and `--skip-build` never bump the version. `--dry-run` prints upload order without writing to Nextcloud. `--skip-build` reuses `dist/` after a previous signed build.
 
-`./upload.sh` does not build or sign. It reads Nextcloud credentials from `.env.upload` (`NC_URL`, `NC_USER`, `NC_PASSWORD`, `REMOTE_FOLDER`), scans `dist/` for macOS, Windows, and Linux artifacts, uploads each complete set (manifest last), and reports platforms that are missing. Signing credentials are not required.
+`./upload.sh` and `.\upload.ps1` do not build or sign. They read Nextcloud credentials from `.env.upload` (`NC_URL`, `NC_USER`, `NC_PASSWORD`, `REMOTE_FOLDER`), scan `dist/` for macOS, Windows, and Linux artifacts, upload each complete set (manifest last), and report platforms that are missing. Signing credentials are not required.
 
 Each command fails closed when credentials, host/arch, signatures, notarization, manifest references, checksums, or uploads are wrong. Artifacts and blockmaps are uploaded first; that platform's `latest*.yml` is uploaded last.
 

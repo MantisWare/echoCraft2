@@ -45,7 +45,7 @@ function parseUploadArgs(argv) {
     else if (arg.startsWith("-")) {
       throw new Error(`Unknown option: ${arg}`);
     } else {
-      throw new Error("Usage: ./upload.sh [--dry-run]");
+      throw new Error("Usage: ./upload.sh or .\\upload.ps1 [--dry-run]");
     }
   }
   return { dryRun };

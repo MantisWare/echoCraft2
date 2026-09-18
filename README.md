@@ -117,11 +117,11 @@ This starts the Vite dev server and Electron together. The embedding model for s
 
 ```bash
 ./build-macos.sh          # local DMG for this Mac (does not publish)
-./build-windows.sh        # local NSIS installer
+.\build-windows.ps1       # local NSIS installer (PowerShell on Windows)
 ./build-linux.sh          # local AppImage + deb
 ```
 
-Each script compiles native helpers, downloads sidecars, builds the renderer, and packs the installer into `dist/`. Pass `--help` to any of them for architecture, target, and signing options. To publish a signed update, use the `release-*.sh` scripts below.
+Each script compiles native helpers, downloads sidecars, builds the renderer, and packs the installer into `dist/`. Pass `--help` to any of them for architecture, target, and signing options. To publish a signed update, use the `release-*` scripts below.
 
 ---
 
@@ -217,9 +217,10 @@ Production releases are signed locally on each native OS and uploaded to the Nex
 
 ```bash
 ./release-macos.sh        # bump patch, sign, notarize, upload
-./release-windows.sh      # same version, sign, upload
+.\release-windows.ps1     # same version, sign, upload (PowerShell on Windows)
 ./release-linux.sh        # same version, upload
 ./upload.sh               # upload whatever complete platforms are already in dist/
+.\upload.ps1              # same as upload.sh, from PowerShell
 ```
 
 Only macOS changes `package.json`. Windows and Linux reuse that version. `./build-macos.sh` is still for local unsigned DMGs and does not publish. Signed Windows releases use `CSC_LINK` / `CSC_KEY_PASSWORD`, not Azure Trusted Signing.
