@@ -232,9 +232,20 @@ if (Test-Path -LiteralPath '.nvmrc') {
 $nodeVersion = Invoke-NodePrint 'process.versions.node'
 $nodeMajor = ($nodeVersion -split '\.')[0]
 if ($expectedNode -and $nodeMajor -ne $expectedNode) {
-  Write-Output "warning: Node $nodeMajor in use, project pins Node $expectedNode (.nvmrc)."
-  Write-Output "         Use Node $expectedNode before installing dependencies, or the"
-  Write-Output '         lockfile will drift from CI.'
+  Write-ErrorLine "error: Node $nodeVersion is in use; this project requires Node $expectedNode (.nvmrc)."
+  Write-ErrorLine '       .npmrc sets engine-strict=true, so npm ci will refuse another major.'
+  $nvm = Get-Command nvm -ErrorAction SilentlyContinue
+  if ($nvm) {
+    Write-ErrorLine '       This shell has nvm. Install and switch, then open a new PowerShell:'
+    Write-ErrorLine "         nvm install $expectedNode"
+    Write-ErrorLine "         nvm use $expectedNode"
+  } else {
+    Write-ErrorLine "       Install Node $expectedNode, open a new PowerShell, then retry:"
+    Write-ErrorLine "         nvm-windows: nvm install $expectedNode ; nvm use $expectedNode"
+    Write-ErrorLine "         or download $expectedNode.x from https://nodejs.org"
+  }
+  Write-ErrorLine '       Confirm with: node -v'
+  exit 1
 }
 
 # .env ships as an extraResource, so electron-builder fails if the file is absent.
