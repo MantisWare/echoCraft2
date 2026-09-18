@@ -1,7 +1,7 @@
 const https = require("https");
 const fs = require("fs");
 const path = require("path");
-const { execSync } = require("child_process");
+const { execFile, execSync } = require("child_process");
 
 const REQUEST_TIMEOUT = 30000;
 const MAX_RETRIES = 3;
@@ -239,17 +239,61 @@ function downloadFile(url, dest, retryCount = 0) {
   });
 }
 
+function execFileAsync(command, args) {
+  return new Promise((resolve, reject) => {
+    execFile(command, args, (error) => {
+      if (error) reject(error);
+      else resolve();
+    });
+  });
+}
+
+async function extractZipWithUnzipper(zipPath, destDir) {
+  const unzipper = require("unzipper");
+  await fs
+    .createReadStream(zipPath)
+    .pipe(unzipper.Extract({ path: destDir }))
+    .promise();
+}
+
+async function extractZipWindows(zipPath, destDir) {
+  const errors = [];
+
+  try {
+    const { runSystemTar } = require("../../src/helpers/systemTar");
+    await runSystemTar(zipPath, destDir);
+    return;
+  } catch (error) {
+    errors.push(`tar: ${error.message}`);
+  }
+
+  try {
+    await extractZipWithUnzipper(zipPath, destDir);
+    return;
+  } catch (error) {
+    errors.push(`unzipper: ${error.message}`);
+  }
+
+  try {
+    await execFileAsync("powershell", [
+      "-NoProfile",
+      "-Command",
+      `Expand-Archive -Force -Path '${zipPath}' -DestinationPath '${destDir}'`,
+    ]);
+    return;
+  } catch (error) {
+    errors.push(`Expand-Archive: ${error.message}`);
+  }
+
+  throw new Error(`Zip extraction failed:\n${errors.join("\n")}`);
+}
+
 async function extractZip(zipPath, destDir) {
   if (process.platform === "win32") {
-    // Use unzipper package on Windows for better path handling
-    const unzipper = require("unzipper");
-    await fs
-      .createReadStream(zipPath)
-      .pipe(unzipper.Extract({ path: destDir }))
-      .promise();
-  } else {
-    execSync(`unzip -o "${zipPath}" -d "${destDir}"`, { stdio: "inherit" });
+    await extractZipWindows(zipPath, destDir);
+    return;
   }
+  execSync(`unzip -o "${zipPath}" -d "${destDir}"`, { stdio: "inherit" });
 }
 
 function extractTarGz(tarPath, destDir) {
