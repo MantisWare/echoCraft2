@@ -175,6 +175,28 @@ if (-not $npmPath) {
   exit 1
 }
 
+function Test-WindowsBuildDeps {
+  $viteCmd = Join-Path $PSScriptRoot 'node_modules\.bin\vite.cmd'
+  $builderCmd = Join-Path $PSScriptRoot 'node_modules\.bin\electron-builder.cmd'
+  return (Test-Path -LiteralPath $viteCmd) -and (Test-Path -LiteralPath $builderCmd)
+}
+
+function Require-WindowsBuildDeps {
+  if (Test-WindowsBuildDeps) {
+    return
+  }
+  Write-ErrorLine 'error: node_modules is incomplete (vite / electron-builder not installed).'
+  Write-ErrorLine '       From this repo, with Node 24, run:'
+  Write-ErrorLine '         npm ci'
+  Write-ErrorLine '       or rerun with --install. Do not use --omit=dev; the Windows'
+  Write-ErrorLine '       build needs devDependencies. Then retry .\build-windows.ps1.'
+  exit 1
+}
+
+if (-not $Install) {
+  Require-WindowsBuildDeps
+}
+
 if ([string]::IsNullOrEmpty($Arch)) {
   $hostArch = Invoke-NodePrint 'process.arch'
   switch ($hostArch) {
@@ -225,6 +247,7 @@ $version = (Get-Content -LiteralPath 'package.json' -Raw | ConvertFrom-Json).ver
 
 if ($Install) {
   Invoke-Native -FilePath $npmPath -NativeArgs @('ci')
+  Require-WindowsBuildDeps
 }
 
 # Artifacts from an earlier version or target survive in dist/, so they would be

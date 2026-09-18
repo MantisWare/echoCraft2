@@ -46,6 +46,7 @@ export default defineConfig(({ mode }) => {
       },
     ],
     base: "./", // Use relative paths for file:// protocol in Electron
+    root: __dirname,
     envDir, // Load .env from project root
     resolve: {
       alias: {
