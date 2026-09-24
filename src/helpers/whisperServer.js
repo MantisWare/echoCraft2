@@ -187,13 +187,6 @@ function buildWhisperServerArgs({
   // explicitly pass "auto" to enable language auto-detection
   args.push("--language", language || "auto");
 
-  // whisper.cpp v1.9.x turned token timestamps on for every request, which enables the
-  // server's 60-character segment wrap. split_on_word is off, so the wrap lands on a token
-  // boundary and breaks words mid-word ("abschalten" -> "abs" + "chalten"); we join segments
-  // into one string, so the break surfaces as a stray space. We only read `text`, never
-  // per-token timings, so turn timestamps off and the wrap goes with them. See #1348.
-  args.push("--no-timestamps");
-
   if (isVadActive({ vadEnabled, vadModelPath })) {
     const cfg = sanitizeWhisperVadConfig(vadConfig || DEFAULT_WHISPER_VAD_CONFIG);
     args.push(
@@ -899,6 +892,22 @@ class WhisperServerManager extends EventEmitter {
         `Content-Disposition: form-data; name="language"\r\n\r\n` +
         `${language || "auto"}\r\n`
     );
+
+    // Keep segment timestamp decoding: no_timestamps can collapse a prompted
+    // 30-second speech window to a single dictionary word and skip its opening.
+    // Only token-level alignment needs disabling to prevent the server's
+    // 60-character wrapping from splitting words (#1348). Send both explicitly
+    // so local and LAN servers behave the same, even with --no-timestamps set.
+    for (const [name, value] of Object.entries({
+      no_timestamps: "false",
+      token_timestamps: "false",
+    })) {
+      parts.push(
+        `--${boundary}\r\n` +
+          `Content-Disposition: form-data; name="${name}"\r\n\r\n` +
+          `${value}\r\n`
+      );
+    }
 
     if (!skipDecoderThresholds) {
       for (const [name, value] of Object.entries(INFERENCE_DECODER_FIELDS)) {

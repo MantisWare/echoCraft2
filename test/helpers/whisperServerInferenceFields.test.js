@@ -69,8 +69,13 @@ test("sends the decoder threshold fields alongside the existing inference fields
   assert.equal(fieldValue(body, "prompt"), "OpenWhispr");
   assert.equal(fieldValue(body, "response_format"), "json");
 
-  // Field order: file, language, decoder thresholds, prompt, response_format, closing boundary.
-  const positions = ['name="file"', 'name="language"']
+  // Field order: file, language, timing, decoder thresholds, prompt, response_format.
+  const positions = [
+    'name="file"',
+    'name="language"',
+    'name="no_timestamps"',
+    'name="token_timestamps"',
+  ]
     .concat(Object.keys(INFERENCE_DECODER_FIELDS).map((name) => `name="${name}"`))
     .concat(['name="prompt"', 'name="response_format"'])
     .map((marker) => body.indexOf(marker));
@@ -139,3 +144,26 @@ test("transcribeLocalWhisper plumbs skipDecoderThresholds to the server request 
   await manager.transcribeLocalWhisper(Buffer.from("audio"), { model: "base" });
   assert.equal(captured[1].skipDecoderThresholds, false);
 });
+
+// Request-level settings must override even a LAN server started with
+// --no-timestamps. Keep dictionary conditioning and segment decoding together,
+// without reintroducing the token-alignment word-wrap regression.
+for (const initialPrompt of [undefined, "Mia, Mia Nebula, MantisWare, miaOS, EchoCraft"]) {
+  for (const skipDecoderThresholds of [false, true]) {
+    test(`preserves segment decoding without token wrapping (prompt=${!!initialPrompt}, meeting=${skipDecoderThresholds})`, async (t) => {
+      const { server, port, getBody } = await startCapturingServer();
+      t.after(() => server.close());
+      const manager = createManager(port);
+      await manager.transcribe(Buffer.from("audio"), {
+        language: "en",
+        initialPrompt,
+        skipDecoderThresholds,
+      });
+      const body = getBody();
+      assert.equal(fieldValue(body, "no_timestamps"), "false");
+      assert.equal(fieldValue(body, "token_timestamps"), "false");
+      assert.equal(fieldValue(body, "prompt"), initialPrompt ?? null);
+      assert.equal(fieldValue(body, "response_format"), "json");
+    });
+  }
+}
