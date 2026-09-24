@@ -1,4 +1,4 @@
-const { execFileSync } = require("node:child_process");
+const { execFileSync, spawnSync } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
 const { MAC_SIGNING_IDENTITY, MAC_TEAM_ID, WINDOWS_PUBLISHER_NAME } = require("./constants");
@@ -9,6 +9,16 @@ function run(command, args, options = {}) {
     stdio: ["ignore", "pipe", "pipe"],
     ...options,
   });
+}
+
+// codesign -dv writes its report to stderr, so stdout alone is always empty.
+function runCombined(command, args) {
+  const result = spawnSync(command, args, { encoding: "utf8" });
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    throw new Error(`${command} exited with ${result.status}: ${result.stderr ?? ""}`);
+  }
+  return `${result.stdout ?? ""}${result.stderr ?? ""}`;
 }
 
 function findMacApp(outputDir) {
@@ -31,7 +41,7 @@ function verifyMacSignature(appPath) {
   }
 
   run("codesign", ["--verify", "--deep", "--strict", appPath]);
-  const details = run("codesign", ["-dv", "--verbose=4", appPath]);
+  const details = runCombined("codesign", ["-dv", "--verbose=4", appPath]);
   if (!details.includes(MAC_TEAM_ID)) {
     throw new Error(`macOS signature is missing Team ID ${MAC_TEAM_ID}`);
   }
