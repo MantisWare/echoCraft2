@@ -185,7 +185,23 @@
     }]
   },
   "linux": {
-    "target": ["AppImage", "deb", "rpm", "tar.gz"],
+    "target": [{
+        "target": "AppImage",
+        "arch": ["x64"]
+      },
+      {
+        "target": "deb",
+        "arch": ["x64"]
+      },
+      {
+        "target": "rpm",
+        "arch": ["x64"]
+      },
+      {
+        "target": "tar.gz",
+        "arch": ["x64"]
+      }
+    ],
     "icon": "src/assets/icon.png",
     "category": "Utility",
     "executableName": "echocraft",

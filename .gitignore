@@ -275,6 +275,7 @@ $RECYCLE.BIN/
 *~
 
 # AI agent skills (keep local)
+.superpowers/
 .claude/
 .agent/
 .agents/

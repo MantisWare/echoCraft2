@@ -8,6 +8,7 @@ const {
   fetchLatestRelease,
   findBinaryInDir,
   parseArgs,
+  formatUnsupportedPlatformError,
   setExecutable,
   cleanupFiles,
 } = require("./lib/download-utils");
@@ -150,7 +151,7 @@ async function main() {
     const entries = getEntriesForPlatformArch(args.platformArch);
 
     if (entries.length === 0) {
-      console.error(`Unsupported platform/arch: ${args.platformArch}`);
+      console.error(formatUnsupportedPlatformError(args.platformArch));
       process.exitCode = 1;
       return;
     }

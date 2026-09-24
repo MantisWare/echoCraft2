@@ -76,7 +76,7 @@ Everything else ships with the app. Speech models, the local LLM server, the vec
 
 ## 📦 Download & Installation
 
-Grab the latest build from the [EchoCraft download share](https://storage.mantisware.co.za/s/T9p24tDSSKr5jG7):
+Product site: [mantisware.co.za/echoCraft](https://www.mantisware.co.za/echoCraft/). Grab the latest build from the [EchoCraft download share](https://storage.mantisware.co.za/s/T9p24tDSSKr5jG7):
 
 | Platform              | Download                                  |
 | --------------------- | ----------------------------------------- |

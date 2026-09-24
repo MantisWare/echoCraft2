@@ -2,7 +2,12 @@
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
-const { downloadFile, parseArgs, setExecutable } = require("./lib/download-utils");
+const {
+  downloadFile,
+  parseArgs,
+  formatUnsupportedPlatformError,
+  setExecutable,
+} = require("./lib/download-utils");
 
 const YT_DLP_VERSION = "2026.07.04";
 const GITHUB_RELEASE_URL = `https://github.com/yt-dlp/yt-dlp/releases/download/${YT_DLP_VERSION}`;
@@ -80,7 +85,7 @@ async function main() {
 
   if (args.isCurrent) {
     if (!BINARIES[args.platformArch]) {
-      console.error(`Unsupported platform/arch: ${args.platformArch}`);
+      console.error(formatUnsupportedPlatformError(args.platformArch));
       process.exitCode = 1;
       return;
     }

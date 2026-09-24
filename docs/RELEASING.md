@@ -74,6 +74,8 @@ If PowerShell blocks the `.ps1` files (`running scripts is disabled on this syst
 
 `./upload.sh` and `.\upload.ps1` do not build or sign. They read Nextcloud credentials from `.env.upload` (`NC_URL`, `NC_USER`, `NC_PASSWORD`, `REMOTE_FOLDER`), scan `dist/` for macOS, Windows, and Linux artifacts, upload each complete set (manifest last), and report platforms that are missing. Signing credentials are not required.
 
+The same command then publishes `docs/webpage/` over FTP to `https://www.mantisware.co.za/echoCraft/` using `SFTP_HOST` / `SFTP_PORT` / `SFTP_USER` / `SFTP_PASSWORD` / `SFTP_PATH` (or `FTP_*` aliases). `SFTP_PATH` should be `/echoCraft`. A website-only run is allowed when `dist/` has no complete platform. `--dry-run` lists both binary and website files without connecting.
+
 Each command fails closed when credentials, host/arch, signatures, notarization, manifest references, checksums, or uploads are wrong. Artifacts and blockmaps are uploaded first; that platform's `latest*.yml` is uploaded last.
 
 ## Expected artifacts

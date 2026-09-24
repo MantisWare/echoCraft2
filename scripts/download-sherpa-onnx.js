@@ -8,6 +8,7 @@ const {
   findBinaryInDir,
   findLibrariesInDir,
   parseArgs,
+  formatUnsupportedPlatformError,
   setExecutable,
 } = require("./lib/download-utils");
 const {
@@ -306,7 +307,7 @@ async function main() {
 
   if (args.isCurrent) {
     if (!BINARIES[args.platformArch]) {
-      console.error(`Unsupported platform/arch: ${args.platformArch}`);
+      console.error(formatUnsupportedPlatformError(args.platformArch));
       process.exitCode = 1;
       return;
     }
