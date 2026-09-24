@@ -18,6 +18,14 @@ const {
 } = require("./release/artifacts");
 const { ensureRemoteFolder, publishPlatform } = require("./release/publisher");
 const { createUploadIndicator } = require("./release/progress");
+const {
+  getFtpConfig,
+  listWebsiteFiles,
+  requireFtpCredentials,
+  websiteDirFromRoot,
+  WEBSITE_PUBLIC_BASE,
+} = require("./release/website");
+const { publishWebsite } = require("./release/websitePublisher");
 
 const PROJECT_ROOT = path.resolve(__dirname, "..");
 const OUTPUT_DIR = path.join(PROJECT_ROOT, "dist");
@@ -35,6 +43,15 @@ function log(message) {
 function fail(message) {
   console.error(`upload: ${message}`);
   process.exit(1);
+}
+
+function resolveUploadWork({ platforms = [], websiteFiles = [] } = {}) {
+  if (platforms.length === 0 && websiteFiles.length === 0) {
+    throw new Error(
+      "nothing to upload: dist/ has no complete platform release and docs/webpage has no deployable files"
+    );
+  }
+  return { platforms, websiteFiles };
 }
 
 function parseUploadArgs(argv) {
@@ -80,69 +97,98 @@ function planPlatformUpload(entry, outputDir, expectedVersion) {
   });
 }
 
+function listDistFiles(outputDir) {
+  if (!fs.existsSync(outputDir)) {
+    return [];
+  }
+  return listOutputFiles(outputDir);
+}
+
 async function uploadAvailable(argv = process.argv) {
   const options = parseUploadArgs(argv);
   const env = loadUploadEnv(PROJECT_ROOT);
   applyEnvToProcess(env);
-  const uploadConfig = requireUploadCredentials(env);
+  const ftpConfig = requireFtpCredentials(getFtpConfig(env));
+  const websiteDir = websiteDirFromRoot(PROJECT_ROOT);
+  const websiteFiles = listWebsiteFiles(websiteDir);
   const identity = readPackageIdentity(PROJECT_ROOT);
-  const discoveries = discoverUploadablePlatforms(listOutputFiles(OUTPUT_DIR));
+  const discoveries = discoverUploadablePlatforms(listDistFiles(OUTPUT_DIR));
   const ready = discoveries.filter((entry) => entry.status === "ready");
+  const work = resolveUploadWork({ platforms: ready, websiteFiles });
+  const uploadConfig = work.platforms.length > 0 ? requireUploadCredentials(env) : null;
 
   log(`EchoCraft ${identity.version} upload`);
   log(`  env:      .env.upload`);
-  log(`  nc:       ${uploadConfig.ncUser}@${uploadConfig.ncUrl}`);
-  log(`  folder:   ${uploadConfig.remoteFolder}`);
+  if (uploadConfig) {
+    log(`  nc:       ${uploadConfig.ncUser}@${uploadConfig.ncUrl}`);
+    log(`  folder:   ${uploadConfig.remoteFolder}`);
+    log(`  feed:     ${PUBLIC_SHARE_URL}`);
+  }
+  log(`  site:     ${ftpConfig.host}:${ftpConfig.port}${ftpConfig.remotePath}`);
+  log(`  public:   ${WEBSITE_PUBLIC_BASE}`);
   log(`  dry-run:  ${options.dryRun}`);
-  log(`  feed:     ${PUBLIC_SHARE_URL}`);
   log("");
   for (const entry of discoveries) {
     log(`  ${formatStatusLine(entry)}`);
   }
-
-  if (ready.length === 0) {
-    throw new Error("nothing to upload: dist/ has no complete macOS, Windows, or Linux release");
-  }
-
-  const plans = ready.map((entry) => ({
-    entry,
-    plan: planPlatformUpload(entry, OUTPUT_DIR, identity.version),
-  }));
-
-  if (!options.dryRun) {
-    await ensureRemoteFolder(uploadConfig);
-  }
+  log(`  Website  ready     ${work.websiteFiles.length} file(s)`);
 
   const published = [];
-  for (const { entry, plan } of plans) {
-    log("");
-    log(`Uploading ${PLATFORM_LABELS[entry.id]} (${PLATFORMS[entry.id].manifest} last):`);
-    for (const fileName of plan.order) {
-      log(`  ${fileName}`);
+  if (work.platforms.length > 0) {
+    const plans = work.platforms.map((entry) => ({
+      entry,
+      plan: planPlatformUpload(entry, OUTPUT_DIR, identity.version),
+    }));
+
+    if (!options.dryRun) {
+      await ensureRemoteFolder(uploadConfig);
     }
-    const indicator = createUploadIndicator();
-    const result = await publishPlatform({
-      outputDir: OUTPUT_DIR,
-      plan,
-      uploadConfig,
-      dryRun: options.dryRun,
-      onFileStart: (event) => indicator.start(event),
-      onProgress: (event) => indicator.progress(event),
-    });
-    published.push({
-      id: entry.id,
-      files: result.uploaded.length,
-    });
+
+    for (const { entry, plan } of plans) {
+      log("");
+      log(`Uploading ${PLATFORM_LABELS[entry.id]} (${PLATFORMS[entry.id].manifest} last):`);
+      for (const fileName of plan.order) {
+        log(`  ${fileName}`);
+      }
+      const indicator = createUploadIndicator();
+      const result = await publishPlatform({
+        outputDir: OUTPUT_DIR,
+        plan,
+        uploadConfig,
+        dryRun: options.dryRun,
+        onFileStart: (event) => indicator.start(event),
+        onProgress: (event) => indicator.progress(event),
+      });
+      published.push({
+        id: entry.id,
+        files: result.uploaded.length,
+      });
+    }
   }
+
+  log("");
+  log(`Uploading website (${work.websiteFiles.length} file(s)):`);
+  for (const fileName of work.websiteFiles) {
+    log(`  ${fileName}`);
+  }
+  const websiteResult = await publishWebsite({
+    websiteDir,
+    files: work.websiteFiles,
+    ftpConfig,
+    dryRun: options.dryRun,
+  });
 
   log("");
   log(
     options.dryRun
-      ? `Dry run complete. ${published.length} platform(s) would be uploaded.`
-      : `Upload complete. ${published.length} platform(s) published.`
+      ? `Dry run complete. ${published.length} platform(s) and ${websiteResult.uploaded.length} website file(s) would be uploaded.`
+      : `Upload complete. ${published.length} platform(s) published, ${websiteResult.uploaded.length} website file(s) uploaded, ${websiteResult.skipped.length} unchanged.`
   );
-  log(`Public location: ${PUBLIC_SHARE_URL}`);
-  return { identity, discoveries, published };
+  if (uploadConfig) {
+    log(`Public location: ${PUBLIC_SHARE_URL}`);
+  }
+  log(`Website: ${WEBSITE_PUBLIC_BASE}`);
+  return { identity, discoveries, published, website: websiteResult };
 }
 
 if (require.main === module) {
@@ -154,5 +200,6 @@ if (require.main === module) {
 module.exports = {
   parseUploadArgs,
   formatStatusLine,
+  resolveUploadWork,
   uploadAvailable,
 };

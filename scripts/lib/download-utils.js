@@ -327,20 +327,27 @@ function findBinaryInDir(dir, binaryName, maxDepth = 5, currentDepth = 0) {
   return null;
 }
 
-function parseArgs() {
-  const args = process.argv;
-  let targetPlatform = process.env.TARGET_PLATFORM || process.platform;
-  let targetArch = process.env.TARGET_ARCH || process.arch;
-
-  // CLI args override env vars
+function parseArgs({
+  argv = process.argv,
+  env = process.env,
+  hostPlatform = process.platform,
+  hostArch = process.arch,
+} = {}) {
+  const args = argv;
   const platformIndex = args.indexOf("--platform");
-  if (platformIndex !== -1 && args[platformIndex + 1]) {
-    targetPlatform = args[platformIndex + 1];
-  }
-
   const archIndex = args.indexOf("--arch");
-  if (archIndex !== -1 && args[archIndex + 1]) {
-    targetArch = args[archIndex + 1];
+  const cliPlatform = platformIndex !== -1 ? args[platformIndex + 1] : undefined;
+  const cliArch = archIndex !== -1 ? args[archIndex + 1] : undefined;
+  const hasExplicitArch = Boolean(cliArch) || Boolean(env.TARGET_ARCH);
+
+  let targetPlatform = cliPlatform || env.TARGET_PLATFORM || hostPlatform;
+  let targetArch = cliArch || env.TARGET_ARCH || hostArch;
+
+  // Official Linux packages are x64-only. An arm64 host (Apple Silicon or a
+  // linux-arm64 VM) plus --platform linux / TARGET_PLATFORM=linux used to
+  // resolve to linux-arm64, and none of the sidecar zips are published for it.
+  if (targetPlatform === "linux" && !hasExplicitArch) {
+    targetArch = "x64";
   }
 
   return {
@@ -351,10 +358,18 @@ function parseArgs() {
     isAll: args.includes("--all"),
     isForce: args.includes("--force"),
     shouldCleanup:
-      args.includes("--clean") ||
-      process.env.CI === "true" ||
-      process.env.GITHUB_ACTIONS === "true",
+      args.includes("--clean") || env.CI === "true" || env.GITHUB_ACTIONS === "true",
   };
+}
+
+function formatUnsupportedPlatformError(platformArch) {
+  if (platformArch === "linux-arm64") {
+    return (
+      `Unsupported platform/arch: ${platformArch}. ` +
+      "Linux builds support x64 only; use --arch x64 (or unset TARGET_ARCH)."
+    );
+  }
+  return `Unsupported platform/arch: ${platformArch}`;
 }
 
 function setExecutable(filePath) {
@@ -437,6 +452,7 @@ module.exports = {
   findLibrariesInDir,
   matchesPattern,
   parseArgs,
+  formatUnsupportedPlatformError,
   setExecutable,
   cleanupFiles,
 };
