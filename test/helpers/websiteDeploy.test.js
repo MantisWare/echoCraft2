@@ -16,6 +16,7 @@ const {
   enterRemoteDir,
 } = require("../../scripts/release/websitePublisher");
 const { resolveUploadWork } = require("../../scripts/upload.js");
+const { parseWebArgs, uploadWebsiteOnly } = require("../../scripts/upload-web.js");
 
 function makeTempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "echocraft-website-"));
@@ -183,6 +184,40 @@ test("listWebsiteFiles fails when the webpage folder is missing or empty", () =>
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test("parseWebArgs accepts dry-run and rejects unknown flags", () => {
+  assert.deepEqual(parseWebArgs(["node", "upload-web.js"]), { dryRun: false });
+  assert.deepEqual(parseWebArgs(["node", "upload-web.js", "--dry-run"]), { dryRun: true });
+  assert.throws(() => parseWebArgs(["node", "upload-web.js", "--nope"]), /Unknown option/);
+});
+
+test("uploadWebsiteOnly publishes webpage files and does not touch dist", async () => {
+  const calls = [];
+  const lines = [];
+  const result = await uploadWebsiteOnly({
+    argv: ["node", "upload-web.js", "--dry-run"],
+    projectRoot: path.resolve(__dirname, "../.."),
+    loadEnv: () => ({ FTP_USER: "web", FTP_PASSWORD: "secret" }),
+    applyEnv: () => {},
+    publish: async (args) => {
+      calls.push(args);
+      return { uploaded: args.files, skipped: [], dryRun: args.dryRun };
+    },
+    log: (message) => lines.push(message),
+  });
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].dryRun, true);
+  assert.equal(calls[0].ftpConfig.user, "web");
+  assert.ok(calls[0].files.includes("index.html"));
+  assert.ok(calls[0].files.includes("styles.css"));
+  assert.equal(result.website.dryRun, true);
+  assert.ok(lines.some((line) => line.includes("website upload")));
+  assert.equal(
+    lines.some((line) => /macOS|Windows|Linux|dist\//.test(line)),
+    false
+  );
 });
 
 test("resolveUploadWork allows website-only and fails when both are empty", () => {
