@@ -34,6 +34,7 @@ const {
 const { removeStaleMacSigningKeychains } = require("./release/macKeychain");
 const { ensureRemoteFolder, publishPlatform } = require("./release/publisher");
 const { createUploadIndicator } = require("./release/progress");
+const { formatCommandFailure, npmSpawnOptions } = require("./release/spawn");
 
 const PROJECT_ROOT = path.resolve(__dirname, "..");
 const OUTPUT_DIR = path.join(PROJECT_ROOT, "dist");
@@ -74,14 +75,15 @@ function runNpmBuild(config) {
     log("Windows build is unsigned");
   }
 
+  const npm = npmSpawnOptions();
   const result = spawnSync(
-    "npm",
+    npm.command,
     ["run", config.npmScript, "--", ...config.builderArgs],
-    { cwd: PROJECT_ROOT, env, stdio: "inherit" }
+    { cwd: PROJECT_ROOT, env, stdio: "inherit", shell: npm.shell }
   );
 
   if (result.status !== 0) {
-    throw new Error(`${config.npmScript} failed with exit code ${result.status ?? 1}`);
+    throw new Error(formatCommandFailure(config.npmScript, result));
   }
 }
 
@@ -117,6 +119,9 @@ async function release(argv = process.argv, runtime = process) {
 
   log(`EchoCraft ${identity.version} ${options.platformId} release`);
   log(`  host:     ${runtime.platform}/${runtime.arch}`);
+  if (options.platformId === "win") {
+    log("  target:   win32-x64");
+  }
   log(`  bump:     ${willBump ? options.bump : "none"}`);
   log(`  dry-run:  ${options.dryRun}`);
   log(`  feed:     ${PUBLIC_SHARE_URL}`);

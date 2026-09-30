@@ -16,6 +16,7 @@ const {
   sha512Base64,
 } = require("../../scripts/release/artifacts");
 const { parseArgs, validateNativeHost, getPlatformConfig } = require("../../scripts/release/platform");
+const { formatCommandFailure, npmSpawnOptions } = require("../../scripts/release/spawn");
 const {
   parseEnvFile,
   getUploadConfig,
@@ -77,6 +78,19 @@ test("parseArgs bumps macOS by default and rejects bump on other platforms", () 
     /macOS-only/
   );
   assert.throws(() => parseArgs(["node", "release.js", "mac", "--bump"]), /--bump needs/);
+});
+
+test("npm spawn uses cmd.exe on Windows so npm.cmd can be found", () => {
+  assert.deepEqual(npmSpawnOptions("win32"), { command: "npm", shell: true });
+  assert.deepEqual(npmSpawnOptions("darwin"), { command: "npm", shell: false });
+  assert.match(
+    formatCommandFailure("build:win", { status: null, error: new Error("spawn npm ENOENT") }),
+    /failed to start: spawn npm ENOENT/
+  );
+  assert.equal(
+    formatCommandFailure("build:win", { status: 1, error: null }),
+    "build:win failed with exit code 1"
+  );
 });
 
 test("validateNativeHost rejects the wrong OS and architecture", () => {

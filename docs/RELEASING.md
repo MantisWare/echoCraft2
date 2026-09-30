@@ -16,14 +16,14 @@ Keep these stable:
 - Channel: `latest`
 - macOS signing identity: `Developer ID Application: Waldo Marais (Z2BVWT9X93)`
 
-Supported release targets: macOS arm64, Windows x64, Linux x64. Intel macOS and the retired `https://mantisware.co.za/echoCraft/App/` feed are out of scope.
+Supported release targets: macOS arm64, Windows x64, Linux x64. Intel macOS and the retired `https://mantisware.co.za/echoCraft/App/` feed are out of scope. There is no Windows ARM64 installer: whisper, sherpa, qdrant, llama, and the Windows helpers are published only as `win32-x64`. That x64 installer runs on Windows ARM through Microsoft's x64 emulation.
 
 ## Prerequisites
 
 | Platform | Host | Notes |
 | -------- | ---- | ----- |
 | macOS | Apple Silicon Mac | Xcode command line tools, Developer ID Application cert in the keychain or `CSC_LINK` |
-| Windows | x64 Windows (PowerShell 5.1 or 7) | Unsigned. No Authenticode certificate. SmartScreen warns on first install |
+| Windows | Windows x64, or Windows ARM running the x64 Node build (PowerShell 5.1 or 7) | Unsigned x64 installer. No Authenticode certificate. SmartScreen warns on first install |
 | Linux | x64 Linux | No package signature; AppImage/deb/rpm/tar.gz are uploaded after local packaging |
 
 Use Node 24 (see `.nvmrc`). Do not regenerate `package-lock.json` with another major version.
