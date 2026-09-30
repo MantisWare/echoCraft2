@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 #
-# Upload whatever complete platform releases are already in dist/. Does not
-# build, bump, or sign. Reads Nextcloud credentials from .env.upload.
-# Missing macOS / Windows / Linux sets are skipped.
+# Upload complete platform releases already in dist/, then publish
+# docs/webpage/ to https://www.mantisware.co.za/echoCraft/.
+# Does not build, bump, or sign. Reads credentials from .env.upload.
+# Missing macOS / Windows / Linux sets are skipped. The website still uploads.
 #
 # Usage:
 #   ./upload.sh

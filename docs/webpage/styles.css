@@ -33,6 +33,10 @@ html {
   scroll-behavior: smooth;
 }
 
+section[id] {
+  scroll-margin-top: 76px;
+}
+
 body {
   font-family: var(--font);
   line-height: 1.6;
@@ -238,9 +242,12 @@ a {
   grid-template-columns: repeat(3, 1fr);
 }
 
-.platforms-grid,
-.stats-grid {
+.platforms-grid {
   grid-template-columns: repeat(3, 1fr);
+}
+
+.stats-grid {
+  grid-template-columns: repeat(4, 1fr);
 }
 
 .faq-grid {
@@ -396,6 +403,79 @@ a {
   text-align: center;
   margin-top: 1.5rem;
   color: var(--text-muted);
+}
+
+.download-note code,
+.faq-item code,
+.platform-card code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85em;
+  color: var(--text);
+}
+
+.download-extra {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.85rem;
+  margin-top: auto;
+}
+
+.download-extra a {
+  color: var(--primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.download-extra a:hover {
+  color: #60a5fa;
+}
+
+.model-sizes {
+  list-style: none;
+  margin: 0.8rem 0 1rem;
+}
+
+.model-sizes li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  font-size: 0.92rem;
+}
+
+.model-sizes strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.hotkey-list {
+  max-width: 760px;
+  margin: 2rem auto 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.hotkey-row {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.8rem 1rem;
+  background: var(--bg-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+}
+
+.hotkey-row span:first-child {
+  font-weight: 600;
+}
+
+.hotkey-row span:not(:first-child) {
+  color: var(--text-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.88rem;
 }
 
 .stat {
@@ -563,6 +643,7 @@ a {
   display: grid;
   place-items: center;
   cursor: pointer;
+  opacity: 0;
 }
 
 @media (max-width: 900px) {
@@ -575,7 +656,8 @@ a {
   .models-grid,
   .ai-features,
   .download-grid,
-  .footer-content {
+  .footer-content,
+  .hotkey-row {
     grid-template-columns: 1fr;
   }
 

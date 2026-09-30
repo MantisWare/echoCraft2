@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="EchoCraft 2 — privacy-first voice-to-text for macOS, Windows, and Linux. Local by default, no account, free."
+      content="EchoCraft 2 — free voice-to-text for macOS, Windows, and Linux. Local dictation, meetings, notes, and a voice assistant. No account and no license key."
     />
     <meta
       name="keywords"
@@ -27,8 +27,9 @@
           <div class="nav-links">
             <a href="#features">Features</a>
             <a href="#how-it-works">How it works</a>
+            <a href="#models">Models</a>
             <a href="#download">Download</a>
-            <a href="#pricing">Pricing</a>
+            <a href="#pricing">Free</a>
           </div>
         </div>
       </div>
@@ -41,17 +42,17 @@
         </div>
         <h1 class="hero-title">Speak. <span class="gradient-text">Transcribe.</span> Done.</h1>
         <p class="hero-subtitle">
-          Voice-to-text for macOS, Windows, and Linux.<br />
-          Local by default. No account. Free.
+          EchoCraft 2 is voice-to-text for macOS, Windows, and Linux.<br />
+          Local by default. No account. No license key. Free.
         </p>
         <div class="hero-cta">
-          <a href="#download" class="btn btn-primary">Download EchoCraft 2</a>
+          <a href="#download" class="btn btn-primary">Download EchoCraft</a>
           <a href="#features" class="btn btn-secondary">See features</a>
         </div>
         <div class="hero-features">
           <span>Private</span>
           <span>On-device</span>
-          <span>Free forever</span>
+          <span>Free</span>
         </div>
       </div>
     </section>
@@ -74,9 +75,39 @@
           <div class="step">
             <div class="step-number">3</div>
             <h3>Text appears</h3>
-            <p>Your words paste at the cursor in whatever app is focused. No copy-paste dance.</p>
+            <p>Your words paste at the cursor in whatever app is focused.</p>
           </div>
         </div>
+        <div class="hotkey-list">
+          <div class="hotkey-row">
+            <span>Action</span>
+            <span>macOS</span>
+            <span>Windows / Linux</span>
+          </div>
+          <div class="hotkey-row">
+            <span>Dictate</span>
+            <span>Globe / Fn</span>
+            <span>Control+Super</span>
+          </div>
+          <div class="hotkey-row">
+            <span>Voice assistant</span>
+            <span>You choose</span>
+            <span>You choose</span>
+          </div>
+          <div class="hotkey-row">
+            <span>Translate</span>
+            <span>You choose</span>
+            <span>You choose</span>
+          </div>
+          <div class="hotkey-row">
+            <span>Meeting</span>
+            <span>You choose</span>
+            <span>You choose</span>
+          </div>
+        </div>
+        <p class="download-note">
+          Assistant, translate, and meeting stay unset until you pick a key. If a default cannot be registered, EchoCraft falls back to F8 or F9 and tells you.
+        </p>
       </div>
     </section>
 
@@ -88,17 +119,22 @@
           <div class="feature-card">
             <p class="feature-kicker">Dictation</p>
             <h3>Global hotkeys</h3>
-            <p>Dictate, translate, call the assistant, or start a meeting from anywhere. Tap or hold.</p>
+            <p>Dictate, translate, call the assistant, or start a meeting from anywhere. Tap to toggle, or hold for push-to-talk.</p>
           </div>
           <div class="feature-card">
             <p class="feature-kicker">Dictation</p>
             <h3>On-device speech</h3>
-            <p>whisper.cpp, NVIDIA Parakeet, streaming Nemotron, and Cohere Transcribe. GPU on Metal, CUDA, and Vulkan.</p>
+            <p>whisper.cpp, NVIDIA Parakeet, streaming Nemotron, and Cohere Transcribe. Nothing leaves the device unless you add your own key.</p>
+          </div>
+          <div class="feature-card">
+            <p class="feature-kicker">Dictation</p>
+            <h3>GPU acceleration</h3>
+            <p>Local Whisper can use Metal on Apple silicon, CUDA on NVIDIA, and Vulkan on AMD and Intel.</p>
           </div>
           <div class="feature-card">
             <p class="feature-kicker">Dictation</p>
             <h3>Live preview</h3>
-            <p>Streaming models write as you speak. Sixty languages, plus automatic detection.</p>
+            <p>Streaming models write as you speak, then commit the transcript when you stop. Sixty languages, plus automatic detection.</p>
           </div>
           <div class="feature-card">
             <p class="feature-kicker">Dictation</p>
@@ -106,9 +142,14 @@
             <p>Teach it names and jargon. Search, copy, and reuse past transcriptions.</p>
           </div>
           <div class="feature-card">
+            <p class="feature-kicker">Dictation</p>
+            <h3>Translation hotkey</h3>
+            <p>Speak one language and paste another. A separate slot from ordinary dictation, with its own model.</p>
+          </div>
+          <div class="feature-card">
             <p class="feature-kicker">Assistant</p>
             <h3>Dedicated assistant hotkey</h3>
-            <p>No wake word. Speak a command; the answer pastes at a safe cursor or streams into a panel.</p>
+            <p>No wake word. Speak a command. The answer pastes at a safe cursor or streams into a panel.</p>
           </div>
           <div class="feature-card">
             <p class="feature-kicker">Assistant</p>
@@ -118,17 +159,37 @@
           <div class="feature-card">
             <p class="feature-kicker">Assistant</p>
             <h3>Screen context</h3>
-            <p>Opt in to attach a screenshot of the display under your cursor. Never stored.</p>
+            <p>Opt in to attach a screenshot of the display under your cursor for that one request. It is not stored.</p>
+          </div>
+          <div class="feature-card">
+            <p class="feature-kicker">Assistant</p>
+            <h3>Tools</h3>
+            <p>Notes search and creation, calendar lookups, web search, and clipboard access from one spoken request.</p>
           </div>
           <div class="feature-card">
             <p class="feature-kicker">Meetings</p>
             <h3>Both sides of the call</h3>
-            <p>Captures Zoom, Teams, Webex, and FaceTime with on-device speaker labels.</p>
+            <p>Detects Zoom, Teams, Webex, and FaceTime, then captures your mic and the other side of the call.</p>
+          </div>
+          <div class="feature-card">
+            <p class="feature-kicker">Meetings</p>
+            <h3>Speaker labels</h3>
+            <p>On-device diarization and voice fingerprints, so the same person can be recognized across meetings.</p>
+          </div>
+          <div class="feature-card">
+            <p class="feature-kicker">Meetings</p>
+            <h3>Calendar</h3>
+            <p>Google, Microsoft, and Apple Calendar supply the meeting name, a reminder, and a join link when the event has one.</p>
           </div>
           <div class="feature-card">
             <p class="feature-kicker">Notes</p>
-            <h3>Notes that search by meaning</h3>
-            <p>Folders, calendar-linked meetings, and offline semantic search. Import files or a YouTube URL.</p>
+            <h3>Search by meaning</h3>
+            <p>Folders, AI actions, and offline semantic search. Find a note by what it was about, not the exact words.</p>
+          </div>
+          <div class="feature-card">
+            <p class="feature-kicker">Notes</p>
+            <h3>Import audio</h3>
+            <p>Drag in files, queue a batch, or paste a YouTube or direct audio URL. Speaker detection can run on the import.</p>
           </div>
           <div class="feature-card">
             <p class="feature-kicker">Privacy</p>
@@ -138,12 +199,12 @@
           <div class="feature-card">
             <p class="feature-kicker">Platform</p>
             <h3>macOS, Windows, Linux</h3>
-            <p>X11 and Wayland, including GNOME, KDE, and Hyprland. Ten UI languages.</p>
+            <p>X11 and Wayland, including GNOME, KDE, and Hyprland. Ten UI languages, including Japanese and both Chinese scripts.</p>
           </div>
           <div class="feature-card">
-            <p class="feature-kicker">Dictation</p>
-            <h3>Translation hotkey</h3>
-            <p>Speak one language, paste another. A separate slot from ordinary dictation.</p>
+            <p class="feature-kicker">Setup</p>
+            <h3>Local, your key, or your server</h3>
+            <p>Start on-device. Add a provider key if you want one, or point EchoCraft at an OpenAI-compatible server you run.</p>
           </div>
         </div>
       </div>
@@ -152,10 +213,10 @@
     <section class="section">
       <div class="container">
         <h2 class="section-title">Voice assistant, when you want it</h2>
-        <p class="section-subtitle">A dedicated hotkey. No “hey Echo.” Cleanup is skipped.</p>
+        <p class="section-subtitle">A dedicated hotkey sends what you say straight to the assistant.</p>
         <div class="notice">
-          The assistant can run on a local LLM with no key, or on a provider you already pay —
-          OpenAI, Anthropic, Gemini, Groq, and others. EchoCraft never resells those APIs.
+          The assistant can run on a local LLM with no key, or on a provider you already use —
+          OpenAI, Anthropic, Gemini, Groq, and others. EchoCraft does not resell those APIs.
         </div>
         <div class="ai-features">
           <div class="ai-feature">
@@ -170,7 +231,7 @@
           </div>
           <div class="ai-feature">
             <h3>Safe paste</h3>
-            <p>Answers only type into a verified writable field. Otherwise they stay in the panel.</p>
+            <p>Answers only type into a verified writable field. Otherwise they stay in the panel and on the clipboard.</p>
             <div class="ai-example">Panel + clipboard when the caret moved.</div>
           </div>
         </div>
@@ -185,34 +246,55 @@
       </div>
     </section>
 
-    <section class="section section-alt">
+    <section id="models" class="section section-alt">
       <div class="container">
         <h2 class="section-title">Pick a speech model</h2>
-        <p class="section-subtitle">Start local. Add a cloud key only if you want one.</p>
+        <p class="section-subtitle">
+          The installer does not bundle a speech model. You download the one you want inside the app. It stays on disk for next time.
+        </p>
         <div class="models-grid">
           <div class="model-card">
             <h3>Whisper</h3>
-            <p>tiny through large and turbo. The familiar on-device baseline.</p>
+            <ul class="model-sizes">
+              <li><strong>Tiny</strong><span>75 MB</span></li>
+              <li><strong>Base</strong><span>142 MB</span></li>
+              <li><strong>Small</strong><span>466 MB</span></li>
+              <li><strong>Medium</strong><span>1.5 GB</span></li>
+              <li><strong>Turbo</strong><span>1.6 GB</span></li>
+              <li><strong>Large</strong><span>3 GB</span></li>
+            </ul>
+            <p>The on-device baseline. Base is the usual starting point. Turbo is faster and more accurate. Large is the quality ceiling.</p>
           </div>
           <div class="model-card">
             <h3>Parakeet</h3>
-            <p>Fast multilingual and English-only NVIDIA models via sherpa-onnx.</p>
+            <ul class="model-sizes">
+              <li><strong>TDT 0.6B</strong><span>680 MB</span></li>
+              <li><strong>Unified EN</strong><span>631 MB</span></li>
+            </ul>
+            <p>NVIDIA models via sherpa-onnx. TDT covers 25 languages with automatic detection. Unified EN is English-only.</p>
           </div>
           <div class="model-card">
             <h3>Nemotron streaming</h3>
-            <p>Cache-aware streaming for live preview as you speak.</p>
+            <ul class="model-sizes">
+              <li><strong>Speech EN</strong><span>632 MB</span></li>
+              <li><strong>3.5 multilingual</strong><span>650 MB</span></li>
+            </ul>
+            <p>Words appear while you talk. When you stop, that text is the transcript.</p>
           </div>
           <div class="model-card">
             <h3>Cohere Transcribe</h3>
-            <p>The most accurate local option. One language per session.</p>
+            <ul class="model-sizes">
+              <li><strong>On disk</strong><span>2.7 GB</span></li>
+            </ul>
+            <p>The most accurate local option. Fourteen languages, one language per session. Long audio is split at 30 seconds.</p>
           </div>
           <div class="model-card">
             <h3>Bring your own key</h3>
-            <p>OpenAI, Groq, xAI, Mistral, Gemini, Corti, Tinfoil, or an OpenAI-compatible endpoint.</p>
+            <p>Speech: OpenAI, Groq, xAI, Mistral, Gemini, Corti, or Tinfoil. Reasoning: OpenAI, Anthropic, Gemini, Groq, and the same private options. Or any OpenAI-compatible server you host.</p>
           </div>
           <div class="model-card">
             <h3>Local LLMs</h3>
-            <p>Qwen, Llama, Mistral, Gemma, GPT-OSS, and LiquidAI through llama.cpp.</p>
+            <p>Qwen, Llama, Mistral, Gemma, GPT-OSS, and LiquidAI through llama.cpp. No key. The server downloads with the app’s first local-model setup.</p>
           </div>
         </div>
       </div>
@@ -221,22 +303,22 @@
     <section class="section">
       <div class="container">
         <h2 class="section-title">Works on your desktop</h2>
-        <p class="section-subtitle">Official builds for the three platforms we sign and publish.</p>
+        <p class="section-subtitle">Signed builds for the three platforms we publish.</p>
         <div class="platforms-grid">
           <div class="platform-card">
             <h3>macOS</h3>
-            <p>Apple Silicon. Microphone, Accessibility, and optional Screen Recording.</p>
-            <p>Globe / Fn to dictate.</p>
+            <p>Apple Silicon. Microphone, Accessibility for auto-paste, and Screen Recording only if you enable screen context or system-audio meetings.</p>
+            <p>Globe / Fn to dictate. Calendar access is optional.</p>
           </div>
           <div class="platform-card">
             <h3>Windows</h3>
-            <p>Windows 10 or later, x64. Meeting system-audio needs 2004+.</p>
-            <p>Control+Super to dictate.</p>
+            <p>Windows 10 or later, x64. Meeting system-audio needs version 2004 or newer and falls back below that.</p>
+            <p>Control+Super to dictate. Installer and portable build.</p>
           </div>
           <div class="platform-card">
             <h3>Linux</h3>
-            <p>Ubuntu 22.04+, Fedora 37+, X11 or Wayland. Official package is the AppImage.</p>
-            <p>Control+Super to dictate.</p>
+            <p>Ubuntu 22.04+, Fedora 37+, or equivalent, on X11 or Wayland. GNOME, KDE, and Hyprland each have a native hotkey path.</p>
+            <p>Control+Super to dictate. AppImage is the primary package.</p>
           </div>
         </div>
       </div>
@@ -244,17 +326,17 @@
 
     <section id="pricing" class="section section-alt">
       <div class="container">
-        <h2 class="section-title">Free forever</h2>
-        <p class="section-subtitle">MIT licensed. No subscription. No account.</p>
+        <h2 class="section-title">Free</h2>
+        <p class="section-subtitle">MIT licensed. Download it and run it. There is no license key and no subscription.</p>
         <div class="pricing-card">
           <h3>EchoCraft 2</h3>
           <span class="price-amount">$0</span>
           <span class="price-period">local by default</span>
           <ul class="pricing-features">
             <li>Unlimited on-device transcription</li>
-            <li>Meetings, notes, and assistant included</li>
-            <li>No telemetry</li>
-            <li>Optional BYOK — you pay the provider, not us</li>
+            <li>Meetings, notes, import, and the assistant included</li>
+            <li>No account and no telemetry</li>
+            <li>Optional bring-your-own-key — the provider bills you, not us</li>
             <li>Signed updates from the same download feed</li>
           </ul>
           <a href="#download" class="btn btn-primary">Download</a>
@@ -265,16 +347,19 @@
     <section id="download" class="section">
       <div class="container">
         <h2 class="section-title">Download EchoCraft</h2>
-        <p class="section-subtitle">Direct files. Same names every release.</p>
+        <p class="section-subtitle">Current release files. Same names every update.</p>
         <div class="download-grid">
           <div class="download-card">
             <h3>macOS</h3>
-            <p>Apple Silicon · DMG</p>
+            <p>Apple Silicon · signed and notarized</p>
             <a
               class="btn btn-primary"
               href="https://storage.mantisware.co.za/public.php/dav/files/T9p24tDSSKr5jG7/app/EchoCraft-darwin-arm64.dmg"
               >Download .dmg</a
             >
+            <div class="download-extra">
+              <a href="https://storage.mantisware.co.za/public.php/dav/files/T9p24tDSSKr5jG7/app/EchoCraft-darwin-arm64.zip">.zip</a>
+            </div>
           </div>
           <div class="download-card">
             <h3>Windows</h3>
@@ -284,6 +369,9 @@
               href="https://storage.mantisware.co.za/public.php/dav/files/T9p24tDSSKr5jG7/app/EchoCraft-win32-x64.exe"
               >Download .exe</a
             >
+            <div class="download-extra">
+              <a href="https://storage.mantisware.co.za/public.php/dav/files/T9p24tDSSKr5jG7/app/EchoCraft-win32-x64-portable.exe">Portable .exe</a>
+            </div>
           </div>
           <div class="download-card">
             <h3>Linux</h3>
@@ -293,12 +381,19 @@
               href="https://storage.mantisware.co.za/public.php/dav/files/T9p24tDSSKr5jG7/app/EchoCraft-linux-x64.AppImage"
               >Download AppImage</a
             >
+            <div class="download-extra">
+              <a href="https://storage.mantisware.co.za/public.php/dav/files/T9p24tDSSKr5jG7/app/EchoCraft-linux-x64.deb">.deb</a>
+              <a href="https://storage.mantisware.co.za/public.php/dav/files/T9p24tDSSKr5jG7/app/EchoCraft-linux-x64.rpm">.rpm</a>
+              <a href="https://storage.mantisware.co.za/public.php/dav/files/T9p24tDSSKr5jG7/app/EchoCraft-linux-x64.tar.gz">.tar.gz</a>
+            </div>
           </div>
         </div>
         <p class="download-note">
-          Other packages and older files live on the
+          Older files and update manifests live on the
           <a href="https://storage.mantisware.co.za/s/T9p24tDSSKr5jG7">public share</a>.
-          Unsigned local Mac builds: <code>xattr -dr com.apple.quarantine "/Applications/EchoCraft.app"</code>
+          On Linux, <code>chmod +x EchoCraft-linux-x64.AppImage</code> before you run it.
+          A locally built Mac app that Gatekeeper blocks can be cleared with
+          <code>xattr -dr com.apple.quarantine "/Applications/EchoCraft.app"</code>
         </p>
       </div>
     </section>
@@ -317,7 +412,7 @@
           </div>
           <div class="use-case">
             <h3>Meetings</h3>
-            <p>Both sides of the call, named and searchable afterward.</p>
+            <p>Both sides of the call, named, and searchable afterward.</p>
           </div>
           <div class="use-case">
             <h3>Writers</h3>
@@ -344,6 +439,10 @@
             <div class="stat-label">Dictation languages</div>
           </div>
           <div class="stat">
+            <div class="stat-number">10</div>
+            <div class="stat-label">Interface languages</div>
+          </div>
+          <div class="stat">
             <div class="stat-number">$0</div>
             <div class="stat-label">To download and run locally</div>
           </div>
@@ -362,7 +461,7 @@
           <div class="faq-item">
             <h3>Is my voice private?</h3>
             <p>
-              Yes. Local models run on your machine. Audio does not leave the device unless you
+              Local models run on your machine. Audio does not leave the device unless you
               choose a cloud provider and supply your own key.
             </p>
           </div>
@@ -370,28 +469,29 @@
             <h3>Do I need the internet?</h3>
             <p>
               Not for local dictation after the model is downloaded. Updates, optional cloud APIs,
-              and first-run model downloads need a connection.
+              calendar sync, and first-run model downloads need a connection.
             </p>
           </div>
           <div class="faq-item">
-            <h3>Is it really free?</h3>
+            <h3>Is it free?</h3>
             <p>
-              The app is MIT licensed. Local speech and local LLMs cost nothing. BYOK providers
-              bill you directly if you use them.
+              The app is MIT licensed. There is no license key and no subscription. Local speech
+              and local LLMs cost nothing. Bring-your-own-key providers bill you directly if you use them.
             </p>
           </div>
           <div class="faq-item">
             <h3>What permissions does it need?</h3>
             <p>
               Microphone everywhere. Accessibility on macOS for auto-paste. Screen Recording on
-              macOS only if you enable screen context or system-audio meeting capture.
+              macOS only if you enable screen context or system-audio meeting capture. Calendar
+              access only if you connect a calendar.
             </p>
           </div>
           <div class="faq-item">
-            <h3>Which Linux package should I use?</h3>
+            <h3>Which package should I download?</h3>
             <p>
-              The official button is the AppImage. deb, rpm, and tar.gz are on the public share if
-              you want them.
+              macOS: the Apple Silicon DMG. Windows: the NSIS installer, or the portable exe if you
+              do not want an install. Linux: the AppImage. deb, rpm, and tar.gz are on the same card.
             </p>
           </div>
           <div class="faq-item">
@@ -408,7 +508,7 @@
     <section class="section cta-section">
       <div class="container">
         <h2 class="cta-title">Ready when you are</h2>
-        <p class="cta-subtitle">Download EchoCraft 2. Speak. Get text. Keep it local.</p>
+        <p class="cta-subtitle">Download EchoCraft. Speak. Get text. Keep it local.</p>
         <div class="cta-buttons">
           <a href="#download" class="btn btn-primary btn-large">Download</a>
         </div>
@@ -423,15 +523,16 @@
               <img src="app-icon.svg" alt="" width="24" height="24" />
               EchoCraft
             </h4>
-            <p>Voice-to-text for people who want the words, not the cloud.</p>
+            <p>Voice-to-text for people who want the words, not a subscription.</p>
             <p>© 2024–2026 MANTISWARE</p>
           </div>
           <div class="footer-section">
             <h4>Product</h4>
             <a href="#features">Features</a>
             <a href="#how-it-works">How it works</a>
+            <a href="#models">Models</a>
             <a href="#download">Download</a>
-            <a href="#pricing">Pricing</a>
+            <a href="#pricing">Free</a>
           </div>
           <div class="footer-section">
             <h4>Support</h4>
