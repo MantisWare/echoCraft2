@@ -94,6 +94,9 @@ test("validateNativeHost rejects the wrong OS and architecture", () => {
     /x64 only/
   );
   assert.throws(() => getPlatformConfig("solaris"), /Unknown release platform/);
+  assert.ok(
+    getPlatformConfig("win").builderArgs.includes("electron-builder.unsigned-win.json")
+  );
 });
 
 test("selectReleaseArtifacts is platform-scoped and ignores updater dumps", () => {
@@ -298,14 +301,6 @@ test("readPackageIdentity fails when lockfile versions drift", () => {
 test("requireReleaseCredentials fails closed for missing secrets", () => {
   assert.throws(() => requireReleaseCredentials("linux", {}), /NC_PASSWORD/);
   assert.throws(
-    () => requireReleaseCredentials("win", { NC_PASSWORD: "x" }),
-    /CSC_LINK/
-  );
-  assert.throws(
-    () => requireReleaseCredentials("win", { NC_PASSWORD: "x", CSC_LINK: "cert.p12" }),
-    /CSC_KEY_PASSWORD/
-  );
-  assert.throws(
     () => requireReleaseCredentials("mac", { NC_PASSWORD: "x" }),
     /APPLE_/
   );
@@ -313,11 +308,7 @@ test("requireReleaseCredentials fails closed for missing secrets", () => {
     requireReleaseCredentials("linux", { NC_PASSWORD: "secret" })
   );
   assert.doesNotThrow(() =>
-    requireReleaseCredentials("win", {
-      NC_PASSWORD: "secret",
-      CSC_LINK: "cert.p12",
-      CSC_KEY_PASSWORD: "pw",
-    })
+    requireReleaseCredentials("win", { NC_PASSWORD: "secret" })
   );
   assert.doesNotThrow(() =>
     requireReleaseCredentials("mac", {
@@ -356,8 +347,12 @@ test("prepareBuildEnv drops CSC_LINK on macOS so electron-builder uses the login
   assert.equal(source.CSC_LINK, "./certificate.p12");
 
   const win = prepareBuildEnv({ id: "win", skipVersionBump: false }, source);
-  assert.equal(win.CSC_LINK, "./certificate.p12");
+  assert.equal(win.CSC_LINK, undefined);
+  assert.equal(win.WIN_CSC_LINK, undefined);
+  assert.equal(win.CSC_KEY_PASSWORD, undefined);
+  assert.equal(win.CSC_IDENTITY_AUTO_DISCOVERY, "false");
   assert.equal(win.ECHOCRAFT_SKIP_VERSION_BUMP, undefined);
+  assert.equal(source.CSC_LINK, "./certificate.p12");
 });
 
 test("hasMacSigningIdentity finds the Developer ID on this Mac", { skip: process.platform !== "darwin" }, () => {

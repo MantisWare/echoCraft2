@@ -225,7 +225,7 @@ Production releases are signed locally on each native OS and uploaded to the Nex
 .\upload-web.ps1          # same as upload-web.sh, from PowerShell
 ```
 
-Only macOS changes `package.json`. Windows and Linux reuse that version. `./build-macos.sh` is still for local unsigned DMGs and does not publish. Signed Windows releases use `CSC_LINK` / `CSC_KEY_PASSWORD`, not Azure Trusted Signing.
+Only macOS changes `package.json`. Windows and Linux reuse that version. `./build-macos.sh` is still for local unsigned DMGs and does not publish. Windows releases are unsigned: `.\release-windows.ps1` does not use a code-signing certificate.
 
 ---
 

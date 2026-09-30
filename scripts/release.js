@@ -29,7 +29,7 @@ const {
   requireMacSigningIdentity,
   verifyLinuxArtifacts,
   verifyMacSignature,
-  verifyWindowsSignature,
+  verifyWindowsInstaller,
 } = require("./release/verify");
 const { removeStaleMacSigningKeychains } = require("./release/macKeychain");
 const { ensureRemoteFolder, publishPlatform } = require("./release/publisher");
@@ -70,6 +70,9 @@ function runNpmBuild(config) {
     requireMacSigningIdentity();
     log("Signing with the login keychain (CSC_LINK is ignored on macOS)");
   }
+  if (config.id === "win") {
+    log("Windows build is unsigned");
+  }
 
   const result = spawnSync(
     "npm",
@@ -90,7 +93,7 @@ function verifyPlatform(platformId, outputDir, artifacts) {
     const installer =
       artifacts.find((name) => name.endsWith(".exe") && !name.includes("portable")) ??
       artifacts.find((name) => name.endsWith(".exe"));
-    return verifyWindowsSignature(path.join(outputDir, installer));
+    return verifyWindowsInstaller(installer ? path.join(outputDir, installer) : "");
   }
   return verifyLinuxArtifacts(artifacts.map((name) => path.join(outputDir, name)));
 }
@@ -119,7 +122,7 @@ async function release(argv = process.argv, runtime = process) {
   log(`  feed:     ${PUBLIC_SHARE_URL}`);
 
   if (!options.skipBuild) {
-    log("Building signed artifacts...");
+    log(config.id === "win" ? "Building unsigned artifacts..." : "Building signed artifacts...");
     runNpmBuild(config);
   }
 
@@ -148,7 +151,11 @@ async function release(argv = process.argv, runtime = process) {
   });
 
   if (!options.skipVerify) {
-    log("Verifying signatures and package identity...");
+    log(
+      options.platformId === "win"
+        ? "Verifying the Windows installer..."
+        : "Verifying signatures and package identity..."
+    );
     verifyPlatform(options.platformId, OUTPUT_DIR, selected.artifacts);
   }
 

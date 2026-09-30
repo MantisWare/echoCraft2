@@ -23,7 +23,7 @@ Supported release targets: macOS arm64, Windows x64, Linux x64. Intel macOS and 
 | Platform | Host | Notes |
 | -------- | ---- | ----- |
 | macOS | Apple Silicon Mac | Xcode command line tools, Developer ID Application cert in the keychain or `CSC_LINK` |
-| Windows | x64 Windows (PowerShell 5.1 or 7) | `CSC_LINK` / `CSC_KEY_PASSWORD` for an Authenticode certificate whose publisher includes `MANTISWARE` |
+| Windows | x64 Windows (PowerShell 5.1 or 7) | Unsigned. No Authenticode certificate. SmartScreen warns on first install |
 | Linux | x64 Linux | No package signature; AppImage/deb/rpm/tar.gz are uploaded after local packaging |
 
 Use Node 24 (see `.nvmrc`). Do not regenerate `package-lock.json` with another major version.
@@ -49,7 +49,7 @@ Copy [`.env.release.example`](../.env.release.example) to `.env.release` (gitign
 Required:
 
 - Every platform: `NC_PASSWORD` (and optionally `NC_URL`, `NC_USER`, `REMOTE_FOLDER`)
-- Windows: `CSC_LINK` and `CSC_KEY_PASSWORD` (or `WIN_CSC_*`)
+- Windows: none. Releases are unsigned and ignore `CSC_LINK` / `CSC_KEY_PASSWORD`
 - macOS: Developer ID Application `Waldo Marais (Z2BVWT9X93)` in the login keychain, plus notarization via `APPLE_API_KEY_ID` + `APPLE_API_KEY` + `APPLE_API_ISSUER`, or `APPLE_ID` + `APPLE_APP_SPECIFIC_PASSWORD`; `APPLE_TEAM_ID` defaults to `Z2BVWT9X93`. `CSC_LINK` is ignored on macOS (electron-builder 26.15.3 unlocks its temp keychain with the wrong password).
 
 A Nextcloud password that ever lived in v1 git history must be treated as compromised. Use a rotated password in the gitignored local file. Never commit `.env.signing`, `.env.upload`, or `.env.release`.
@@ -72,7 +72,7 @@ A Nextcloud password that ever lived in v1 git history must be treated as compro
 
 If PowerShell blocks the `.ps1` files (`running scripts is disabled on this system`), allow local scripts once with `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`.
 
-`npm run release:mac`, `release:win`, and `release:linux` are aliases for the same Node runner. `--dry-run` and `--skip-build` never bump the version. `--dry-run` prints upload order without writing to Nextcloud. `--skip-build` reuses `dist/` after a previous signed build.
+`npm run release:mac`, `release:win`, and `release:linux` are aliases for the same Node runner. `--dry-run` and `--skip-build` never bump the version. `--dry-run` prints upload order without writing to Nextcloud. `--skip-build` reuses `dist/` after a previous build.
 
 `./upload.sh` and `.\upload.ps1` do not build or sign. They read Nextcloud credentials from `.env.upload` (`NC_URL`, `NC_USER`, `NC_PASSWORD`, `REMOTE_FOLDER`), scan `dist/` for macOS, Windows, and Linux artifacts, upload each complete set (manifest last), and report platforms that are missing. Signing credentials are not required.
 

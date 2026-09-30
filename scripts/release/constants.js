@@ -6,7 +6,6 @@ const DEFAULT_NC_USER = "admin";
 const DEFAULT_REMOTE_FOLDER = "/Public/echocraft/app";
 const MAC_SIGNING_IDENTITY = "Developer ID Application: Waldo Marais (Z2BVWT9X93)";
 const MAC_TEAM_ID = "Z2BVWT9X93";
-const WINDOWS_PUBLISHER_NAME = "MANTISWARE";
 
 const PLATFORMS = {
   mac: {
@@ -25,7 +24,13 @@ const PLATFORMS = {
     arch: "x64",
     manifest: "latest.yml",
     npmScript: "build:win",
-    builderArgs: ["--x64", "--publish", "always"],
+    builderArgs: [
+      "--x64",
+      "--publish",
+      "always",
+      "--config",
+      "electron-builder.unsigned-win.json",
+    ],
     skipVersionBump: false,
   },
   linux: {
@@ -64,7 +69,6 @@ module.exports = {
   DEFAULT_REMOTE_FOLDER,
   MAC_SIGNING_IDENTITY,
   MAC_TEAM_ID,
-  WINDOWS_PUBLISHER_NAME,
   PLATFORMS,
   PLATFORM_NAME_MARKERS,
   ARTIFACT_EXTENSIONS,

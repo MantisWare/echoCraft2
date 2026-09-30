@@ -1,7 +1,7 @@
 const { execFileSync, spawnSync } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
-const { MAC_SIGNING_IDENTITY, MAC_TEAM_ID, WINDOWS_PUBLISHER_NAME } = require("./constants");
+const { MAC_SIGNING_IDENTITY, MAC_TEAM_ID } = require("./constants");
 
 function run(command, args, options = {}) {
   return execFileSync(command, args, {
@@ -66,34 +66,12 @@ function verifyMacSignature(appPath) {
   return { appPath, details };
 }
 
-function verifyWindowsSignature(exePath) {
+function verifyWindowsInstaller(exePath) {
   if (!exePath || !fs.existsSync(exePath)) {
-    throw new Error("Windows installer was not found for signature verification");
+    throw new Error("Windows installer was not found for release verification");
   }
 
-  const script = [
-    "$sig = Get-AuthenticodeSignature -FilePath $args[0]",
-    "if ($sig.Status -ne 'Valid') { throw \"Authenticode status: $($sig.Status)\" }",
-    "$sig.SignerCertificate.Subject",
-    "$sig.SignerCertificate.GetNameInfo('SimpleName', $false)",
-  ].join("; ");
-
-  let output;
-  try {
-    output = run("powershell.exe", ["-NoProfile", "-Command", script, exePath]);
-  } catch (error) {
-    throw new Error(
-      `Windows Authenticode verification failed: ${error.stderr ?? error.message}`
-    );
-  }
-
-  if (!output.toLowerCase().includes(WINDOWS_PUBLISHER_NAME.toLowerCase())) {
-    throw new Error(
-      `Windows publisher does not include ${WINDOWS_PUBLISHER_NAME}: ${output.trim()}`
-    );
-  }
-
-  return { exePath, output };
+  return { exePath };
 }
 
 function verifyLinuxArtifacts(filePaths) {
@@ -122,6 +100,6 @@ module.exports = {
   hasMacSigningIdentity,
   requireMacSigningIdentity,
   verifyMacSignature,
-  verifyWindowsSignature,
+  verifyWindowsInstaller,
   verifyLinuxArtifacts,
 };

@@ -1,4 +1,5 @@
-# Signed Windows release: package, verify, upload. Does not bump the version;
+# Unsigned Windows release: package, verify the installer exists, upload.
+# Does not bump the version;
 # run ./release-macos.sh first so all three platforms share one build number.
 #
 # Usage:

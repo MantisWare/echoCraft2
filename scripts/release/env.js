@@ -95,13 +95,6 @@ function requireReleaseCredentials(platformId, env) {
     }
   }
 
-  if (platformId === "win") {
-    if (!env.CSC_LINK && !env.WIN_CSC_LINK) missing.push("CSC_LINK");
-    if (!env.CSC_KEY_PASSWORD && !env.WIN_CSC_KEY_PASSWORD) {
-      missing.push("CSC_KEY_PASSWORD");
-    }
-  }
-
   if (missing.length > 0) {
     throw new Error(
       `Missing release credentials for ${platformId}: ${missing.join(", ")}`
@@ -146,6 +139,16 @@ function prepareBuildEnv(config, env = process.env) {
   if (config.id === "mac") {
     delete next.CSC_LINK;
     delete next.WIN_CSC_LINK;
+  }
+  if (config.id === "win") {
+    // Unsigned Windows releases must not pick up a .pfx or a cert in the
+    // Windows store. electron-builder.unsigned-win.json disables signing.
+    next.CSC_IDENTITY_AUTO_DISCOVERY = "false";
+    delete next.CSC_LINK;
+    delete next.WIN_CSC_LINK;
+    delete next.CSC_KEY_PASSWORD;
+    delete next.WIN_CSC_KEY_PASSWORD;
+    delete next.CSC_NAME;
   }
   return next;
 }
