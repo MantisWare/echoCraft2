@@ -65,8 +65,7 @@ a {
   left: 0;
   right: 0;
   z-index: 1000;
-  background: rgb(17 24 39 / 0.86);
-  backdrop-filter: blur(16px);
+  background: var(--bg);
   border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -272,17 +271,25 @@ a {
   padding: 1.35rem;
 }
 
-.step-number {
-  width: 28px;
-  height: 28px;
+.step {
+  display: flex;
+  flex-direction: column;
+}
+
+.step-index {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  margin: 0 0 0.85rem;
   border-radius: 999px;
   background: var(--primary);
   color: #fff;
-  display: grid;
-  place-items: center;
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   font-weight: 700;
-  margin-bottom: 0.8rem;
+  line-height: 1;
+  position: static;
+  transform: none;
 }
 
 .feature-kicker {
@@ -295,7 +302,6 @@ a {
 }
 
 .card h3,
-.step h3,
 .feature-card h3,
 .platform-card h3,
 .use-case h3,
@@ -304,6 +310,11 @@ a {
 .ai-feature h3,
 .download-card h3 {
   margin-bottom: 0.4rem;
+  letter-spacing: -0.02em;
+}
+
+.step h3 {
+  margin: 0 0 0.45rem;
   letter-spacing: -0.02em;
 }
 
@@ -385,7 +396,7 @@ a {
 
 .download-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 1rem;
 }
 

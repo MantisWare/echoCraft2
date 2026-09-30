@@ -433,3 +433,18 @@ test("publishWebsite finishes later files and retries a timed-out file on a fina
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("marketing page only links installers that are published", () => {
+  const page = fs.readFileSync(
+    path.join(__dirname, "../../docs/webpage/index.html"),
+    "utf8"
+  );
+  assert.match(page, /EchoCraft-darwin-arm64\.dmg/);
+  assert.match(page, /EchoCraft-darwin-arm64\.zip/);
+  assert.match(page, /EchoCraft-win32-x64\.exe/);
+  assert.doesNotMatch(page, /portable\.exe/);
+  assert.doesNotMatch(page, /EchoCraft-linux-/);
+  assert.doesNotMatch(page, /AppImage/);
+  assert.match(page, /styles\.css\?v=4/);
+  assert.doesNotMatch(page, /step-head|step-number/);
+});

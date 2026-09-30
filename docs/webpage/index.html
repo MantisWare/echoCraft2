@@ -14,7 +14,7 @@
     <title>EchoCraft — Voice-to-Text for macOS, Windows &amp; Linux</title>
     <link rel="icon" type="image/svg+xml" href="app-icon.svg" />
     <link rel="stylesheet" href="fonts/noto-sans.css" />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=4" />
   </head>
   <body>
     <nav class="navbar">
@@ -63,17 +63,17 @@
         <p class="section-subtitle">Three steps. Any app. Your cursor.</p>
         <div class="steps-grid">
           <div class="step">
-            <div class="step-number">1</div>
+            <span class="step-index">1</span>
             <h3>Press the hotkey</h3>
             <p>Globe / Fn on Mac, Control+Super on Windows and Linux — or set your own.</p>
           </div>
           <div class="step">
-            <div class="step-number">2</div>
+            <span class="step-index">2</span>
             <h3>Speak</h3>
             <p>Tap to toggle, or hold for push-to-talk. Streaming models show words as you talk.</p>
           </div>
           <div class="step">
-            <div class="step-number">3</div>
+            <span class="step-index">3</span>
             <h3>Text appears</h3>
             <p>Your words paste at the cursor in whatever app is focused.</p>
           </div>
@@ -303,7 +303,7 @@
     <section class="section">
       <div class="container">
         <h2 class="section-title">Works on your desktop</h2>
-        <p class="section-subtitle">Signed builds for the three platforms we publish.</p>
+        <p class="section-subtitle">macOS, Windows, and Linux.</p>
         <div class="platforms-grid">
           <div class="platform-card">
             <h3>macOS</h3>
@@ -313,12 +313,12 @@
           <div class="platform-card">
             <h3>Windows</h3>
             <p>Windows 10 or later, x64. Meeting system-audio needs version 2004 or newer and falls back below that.</p>
-            <p>Control+Super to dictate. Installer and portable build.</p>
+            <p>Control+Super to dictate.</p>
           </div>
           <div class="platform-card">
             <h3>Linux</h3>
             <p>Ubuntu 22.04+, Fedora 37+, or equivalent, on X11 or Wayland. GNOME, KDE, and Hyprland each have a native hotkey path.</p>
-            <p>Control+Super to dictate. AppImage is the primary package.</p>
+            <p>Control+Super to dictate. Installers are not published yet.</p>
           </div>
         </div>
       </div>
@@ -347,7 +347,7 @@
     <section id="download" class="section">
       <div class="container">
         <h2 class="section-title">Download EchoCraft</h2>
-        <p class="section-subtitle">Current release files. Same names every update.</p>
+        <p class="section-subtitle">Files that are on the download feed.</p>
         <div class="download-grid">
           <div class="download-card">
             <h3>macOS</h3>
@@ -363,35 +363,18 @@
           </div>
           <div class="download-card">
             <h3>Windows</h3>
-            <p>x64 · NSIS installer</p>
+            <p>x64 · installer</p>
             <a
               class="btn btn-primary"
               href="https://storage.mantisware.co.za/public.php/dav/files/T9p24tDSSKr5jG7/app/EchoCraft-win32-x64.exe"
               >Download .exe</a
             >
-            <div class="download-extra">
-              <a href="https://storage.mantisware.co.za/public.php/dav/files/T9p24tDSSKr5jG7/app/EchoCraft-win32-x64-portable.exe">Portable .exe</a>
-            </div>
-          </div>
-          <div class="download-card">
-            <h3>Linux</h3>
-            <p>x64 · AppImage</p>
-            <a
-              class="btn btn-primary"
-              href="https://storage.mantisware.co.za/public.php/dav/files/T9p24tDSSKr5jG7/app/EchoCraft-linux-x64.AppImage"
-              >Download AppImage</a
-            >
-            <div class="download-extra">
-              <a href="https://storage.mantisware.co.za/public.php/dav/files/T9p24tDSSKr5jG7/app/EchoCraft-linux-x64.deb">.deb</a>
-              <a href="https://storage.mantisware.co.za/public.php/dav/files/T9p24tDSSKr5jG7/app/EchoCraft-linux-x64.rpm">.rpm</a>
-              <a href="https://storage.mantisware.co.za/public.php/dav/files/T9p24tDSSKr5jG7/app/EchoCraft-linux-x64.tar.gz">.tar.gz</a>
-            </div>
           </div>
         </div>
         <p class="download-note">
+          Linux packages are not published yet, so there is no Linux download.
           Older files and update manifests live on the
           <a href="https://storage.mantisware.co.za/s/T9p24tDSSKr5jG7">public share</a>.
-          On Linux, <code>chmod +x EchoCraft-linux-x64.AppImage</code> before you run it.
           A locally built Mac app that Gatekeeper blocks can be cleared with
           <code>xattr -dr com.apple.quarantine "/Applications/EchoCraft.app"</code>
         </p>
@@ -490,8 +473,8 @@
           <div class="faq-item">
             <h3>Which package should I download?</h3>
             <p>
-              macOS: the Apple Silicon DMG. Windows: the NSIS installer, or the portable exe if you
-              do not want an install. Linux: the AppImage. deb, rpm, and tar.gz are on the same card.
+              macOS: the Apple Silicon DMG, with a zip on the same card. Windows: the installer.
+              Linux packages are not published yet.
             </p>
           </div>
           <div class="faq-item">
