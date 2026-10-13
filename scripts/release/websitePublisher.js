@@ -39,6 +39,10 @@ function isBusyError(message) {
   return isConnectionCapError(message) || /timeout/i.test(message);
 }
 
+function isMissingModuleError(error) {
+  return error?.code === "MODULE_NOT_FOUND" || /Cannot find module 'basic-ftp'/.test(errorMessage(error));
+}
+
 function defaultSleep(ms) {
   return new Promise((resolve) => {
     setTimeout(resolve, Math.max(0, ms));
@@ -46,7 +50,15 @@ function defaultSleep(ms) {
 }
 
 async function defaultCreateClient(ftpConfig) {
-  const { Client } = require("basic-ftp");
+  let Client;
+  try {
+    ({ Client } = require("basic-ftp"));
+  } catch (error) {
+    if (isMissingModuleError(error)) {
+      throw new Error("basic-ftp is not installed. From the repo root run: npm install");
+    }
+    throw error;
+  }
   const client = new Client(ftpConfig?.timeoutMs ?? DEFAULT_TIMEOUT_MS);
   client.ftp.ipFamily = 4;
   return client;
@@ -185,6 +197,9 @@ async function publishWebsite({
         console.log(`  uploaded ${relativeFile}`);
         return { ok: true };
       } catch (error) {
+        if (isMissingModuleError(error)) {
+          throw new Error("basic-ftp is not installed. From the repo root run: npm install");
+        }
         lastError = error;
         const message = errorMessage(error);
         await dropSession();

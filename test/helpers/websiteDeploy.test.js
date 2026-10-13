@@ -348,6 +348,39 @@ test("publishWebsite fails closed when a transfer is incomplete", async () => {
   }
 });
 
+test("publishWebsite fails immediately when basic-ftp is not installed", async () => {
+  const dir = makeTempDir();
+  try {
+    writeFile(dir, "index.html", "<html></html>");
+    let calls = 0;
+    await assert.rejects(
+      () =>
+        publishWebsite({
+          websiteDir: dir,
+          files: ["index.html"],
+          ftpConfig: getFtpConfig({
+            SFTP_USER: "vibe",
+            SFTP_PASSWORD: "x",
+            retries: 5,
+          }),
+          createClient: () => {
+            calls += 1;
+            const error = new Error("Cannot find module 'basic-ftp'");
+            error.code = "MODULE_NOT_FOUND";
+            throw error;
+          },
+          sleep: async () => {
+            throw new Error("should not retry a missing module");
+          },
+        }),
+      /npm install/
+    );
+    assert.equal(calls, 1);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("publishWebsite retries a control-socket timeout on a new session", async () => {
   const dir = makeTempDir();
   try {
