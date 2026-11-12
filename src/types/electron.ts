@@ -1819,6 +1819,7 @@ declare global {
 
       // Settings shortcut (Cmd+, / Ctrl+,)
       onShowSettings?: (callback: () => void) => () => void;
+      consumeSettingsNavigation?: () => Promise<boolean>;
       onShowHistory?: (callback: () => void) => () => void;
 
       // Accessibility permission events (macOS)

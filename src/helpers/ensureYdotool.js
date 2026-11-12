@@ -91,6 +91,9 @@ async function ensureYdotool() {
   if (sessionType !== "wayland" && !process.env.WAYLAND_DISPLAY) return;
 
   const log = getLogger();
+  // The clipboard pipeline prefers wtype on wlroots. It needs neither the
+  // ydotool daemon nor /dev/uinput access on this supported path.
+  if (getLinuxSessionInfo().isWlroots && commandExists("wtype")) return;
 
   const hasYdotool = commandExists("ydotool");
   const hasYdotoold = commandExists("ydotoold");

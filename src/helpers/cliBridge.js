@@ -30,7 +30,7 @@ async function findAvailablePort() {
   throw new Error(`No available ports in range ${PORT_RANGE_START}-${PORT_RANGE_END}`);
 }
 
-function readJsonBody(req) {
+function readJsonBody(req, maxBytes = MAX_REQUEST_BODY_BYTES) {
   return new Promise((resolve, reject) => {
     // Buffer the raw chunks and decode once at the end: decoding per chunk
     // corrupts multibyte sequences split across chunk boundaries.
@@ -41,7 +41,7 @@ function readJsonBody(req) {
       if (rejected) return;
       const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
       receivedBytes += buffer.length;
-      if (receivedBytes > MAX_REQUEST_BODY_BYTES) {
+      if (receivedBytes > maxBytes) {
         rejected = true;
         reject(new Error("Request body too large"));
         req.destroy();
@@ -201,7 +201,10 @@ class CliBridge {
     let body = {};
     if (req.method !== "GET" && req.method !== "DELETE") {
       try {
-        body = await readJsonBody(req);
+        body = await readJsonBody(
+          req,
+          url.pathname === "/v1/audio/transcribe" ? 24 * 1024 * 1024 : MAX_REQUEST_BODY_BYTES
+        );
       } catch (err) {
         sendV1Error(res, 400, "validation_error", err.message);
         return;
@@ -222,6 +225,10 @@ class CliBridge {
   }
 
   _sendError(res, err) {
+    if (err.code === "BUSY") {
+      sendV1Error(res, 409, "busy", err.message);
+      return;
+    }
     if (err.code === "NOT_FOUND") {
       sendV1Error(res, 404, "not_found", err.message);
       return;
@@ -301,6 +308,103 @@ class CliBridge {
 
     return [
       exact("GET", "/v1/health", () => ({ data: { ok: true, version: 1 } })),
+      exact("POST", "/v1/settings/open", async () => {
+        await ipc.windowManager.openSettings();
+        return { data: { ok: true } };
+      }),
+      exact("POST", "/v1/dictation/position", ({ body }) => {
+        if (!["center", "bottom-left", "bottom-right"].includes(body.position))
+          throw Object.assign(new Error("Invalid panel position"), { code: "VALIDATION" });
+        ipc.environmentManager.savePanelStartPosition(body.position);
+        ipc.windowManager.setPanelStartPosition(body.position);
+        broadcastToWindows("setting-updated", { key: "panelStartPosition", value: body.position });
+        return { data: { ok: true } };
+      }),
+      exact("POST", "/v1/dictation/auto-hide", ({ body }) => {
+        if (typeof body.enabled !== "boolean")
+          throw Object.assign(new Error("Expected enabled boolean"), { code: "VALIDATION" });
+        ipc.environmentManager.saveFloatingIconAutoHide(body.enabled);
+        ipc.windowManager.setFloatingIconAutoHide(body.enabled);
+        broadcastToWindows("floating-icon-auto-hide-changed", body.enabled);
+        return { data: { ok: true } };
+      }),
+      exact("GET", "/v1/dictation/preferences", async () => ({
+        data: await ipc.windowManager.mainWindow.webContents.executeJavaScript(`({
+          audioCuesEnabled: localStorage.getItem("audioCuesEnabled") !== "false",
+          pauseMediaOnDictation: localStorage.getItem("pauseMediaOnDictation") === "true"
+        })`),
+      })),
+      exact("POST", "/v1/dictation/preferences", ({ body }) => {
+        for (const key of ["pauseMediaOnDictation", "audioCuesEnabled"]) {
+          if (body[key] !== undefined && typeof body[key] !== "boolean")
+            throw Object.assign(new Error("Expected boolean preference"), { code: "VALIDATION" });
+        }
+        for (const key of ["pauseMediaOnDictation", "audioCuesEnabled"]) {
+          if (body[key] !== undefined)
+            broadcastToWindows("setting-updated", { key, value: body[key] });
+        }
+        return { data: { ok: true } };
+      }),
+      exact("GET", "/v1/dictation/status", () => ({
+        data: {
+          state: ipc.windowManager._dictationLifecycleState,
+          ready: !ipc.windowManager._onboardingActive,
+          engine: "whisper",
+          model: process.env.LOCAL_WHISPER_MODEL || "small",
+        },
+      })),
+      exact("POST", "/v1/dictation/control", ({ body }) => {
+        const methods = {
+          start: "sendStartDictation",
+          stop: "sendStopDictation",
+          cancel: "sendCancelDictation",
+          toggle: "sendToggleDictation",
+        };
+        if (!Object.hasOwn(methods, body.command))
+          throw Object.assign(new Error("Unknown dictation command"), { code: "VALIDATION" });
+        if (ipc.windowManager._onboardingActive)
+          throw Object.assign(new Error("Complete EchoCraft setup first"), { code: "BUSY" });
+        ipc.windowManager[methods[body.command]]();
+        return { data: { ok: true } };
+      }),
+      exact("POST", "/v1/audio/transcribe", async ({ body }) => {
+        // Audio crosses the authenticated loopback bridge in memory only. Wake
+        // listening must never create history entries or invoke a cloud fallback.
+        if (
+          typeof body.audio !== "string" ||
+          !body.audio.length ||
+          body.audio.length > 22 * 1024 * 1024 ||
+          !/^[A-Za-z0-9+/]+={0,2}$/.test(body.audio)
+        ) {
+          throw Object.assign(new Error("Expected bounded base64 audio"), { code: "VALIDATION" });
+        }
+        if (this.transcribing || ipc.windowManager._dictationLifecycleState !== "idle")
+          throw Object.assign(new Error("EchoCraft is busy"), { code: "BUSY" });
+        this.transcribing = true;
+        try {
+          const result = await ipc.whisperManager.transcribeLocalWhisper(
+            Buffer.from(body.audio, "base64"),
+            {
+              model: process.env.LOCAL_WHISPER_MODEL || "small",
+              language: "en",
+              signal: AbortSignal.timeout(90000),
+              initialPrompt:
+                typeof body.prompt === "string" ? body.prompt.slice(0, 300) : undefined,
+            }
+          );
+          if (!result.success || typeof result.text !== "string")
+            throw new Error(result.error || "Local recognition failed");
+          return {
+            data: {
+              text: result.text,
+              engine: "whisper",
+              model: process.env.LOCAL_WHISPER_MODEL || "small",
+            },
+          };
+        } finally {
+          this.transcribing = false;
+        }
+      }),
       exact("GET", "/v1/notes/list", ({ query }) => {
         const noteType = query.get("note_type") || null;
         const limit = query.get("limit") ? Number(query.get("limit")) : 100;

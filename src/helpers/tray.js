@@ -136,6 +136,8 @@ class TrayManager {
   }
 
   async createTray() {
+    // miaOS provides the same controls through its center status-bar indicator.
+    if (process.env.ECHOCRAFT_MIAOS === "1") return;
     try {
       const trayIcon = await this.loadTrayIcon();
       if (!trayIcon || trayIcon.isEmpty()) {

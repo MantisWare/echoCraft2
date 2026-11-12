@@ -185,6 +185,8 @@ class HotkeyManager extends EventEmitter {
   }
 
   async registerSlot(slotName, hotkeyInput, callback, options) {
+    // miaOS owns its existing left Ctrl + left Shift press/release bindings.
+    if (process.env.ECHOCRAFT_MIAOS === "1") return { success: true, hotkey: hotkeyInput };
     const hotkeys = parseHotkeyList(hotkeyInput);
     if (hotkeys.length === 0) {
       return {
@@ -845,6 +847,11 @@ class HotkeyManager extends EventEmitter {
 
     this.mainWindow = mainWindow;
     this.hotkeyCallback = callback;
+    if (process.env.ECHOCRAFT_MIAOS === "1") {
+      this.currentHotkey = "Control+Shift";
+      this.notifyActiveHotkey(this.currentHotkey);
+      return;
+    }
 
     // Try GNOME native shortcuts on any GNOME session (X11 or Wayland).
     // On Wayland: required (globalShortcut/XGrabKey doesn't work globally).

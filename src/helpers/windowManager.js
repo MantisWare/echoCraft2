@@ -1478,6 +1478,7 @@ class WindowManager {
     const nextActive = active === true;
     if (nextActive === this._onboardingActive) {
       if (nextActive) this._hideNormalAppSurfaces();
+      else this._flushPendingSettings();
       return true;
     }
 
@@ -1492,6 +1493,7 @@ class WindowManager {
     this.sendCancelDictation();
     this.hideDictationPanel();
     this._onboardingActive = false;
+    this._flushPendingSettings();
     if (!this._floatingIconAutoHide) this.showDictationPanel();
     const deferredUpdate = this._deferredUpdateNotificationInfo;
     this._deferredUpdateNotificationInfo = null;
@@ -2315,8 +2317,19 @@ class WindowManager {
   }
 
   async openSettings() {
+    this._pendingSettingsOpen = true;
     await this.createControlPanelWindow();
-    if (this.controlPanelWindow && !this.controlPanelWindow.isDestroyed()) {
+    this._flushPendingSettings();
+  }
+
+  _flushPendingSettings() {
+    if (
+      this._pendingSettingsOpen &&
+      !this._onboardingActive &&
+      this.controlPanelWindow &&
+      !this.controlPanelWindow.isDestroyed() &&
+      !this.controlPanelWindow.webContents.isLoading()
+    ) {
       this.controlPanelWindow.webContents.send("show-settings");
     }
   }

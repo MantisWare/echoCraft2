@@ -423,6 +423,10 @@ export default function ControlPanel({ initialSettingsSection }: ControlPanelPro
   useEffect(() => {
     const cleanup = window.electronAPI?.onShowSettings?.(() => {
       setShowSettings(true);
+      void window.electronAPI?.consumeSettingsNavigation?.();
+    });
+    void window.electronAPI?.consumeSettingsNavigation?.().then((pending) => {
+      if (pending) setShowSettings(true);
     });
     return () => cleanup?.();
   }, []);

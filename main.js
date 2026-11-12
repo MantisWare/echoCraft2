@@ -92,6 +92,40 @@ function configureChannelUserDataPath() {
 
 configureChannelUserDataPath();
 
+// Opt-in migration profile for miaOS. Seed only once; future user choices win.
+if (process.env.ECHOCRAFT_MIAOS === "1") {
+  require("./src/helpers/omarchyTheme").installOmarchyTheme(app);
+  app.on("web-contents-created", (_event, contents) => {
+    contents.once("did-finish-load", async () => {
+      if (!contents.getURL().startsWith("file:")) return;
+      const settings = {
+        onboardingCompleted: "true",
+        useLocalWhisper: "true",
+        transcriptionMode: "local",
+        localTranscriptionProvider: "whisper",
+        whisperModel: "small",
+        preferredLanguage: "en",
+        useCleanupModel: "false",
+        useDictationAgent: "false",
+        allowOpenAIFallback: "false",
+        dictationKey: "Control+Shift",
+        activationMode: "push",
+        customDictionary: JSON.stringify(["Mia", "Mia Nebula", "MantisWare", "miaOS"]),
+      };
+      try {
+        const seeded = await contents.executeJavaScript(`(() => {
+          if (localStorage.getItem('miaosMigrated') === '1') return false;
+          for (const [key, value] of Object.entries(${JSON.stringify(settings)})) localStorage.setItem(key, value);
+          localStorage.setItem('miaosMigrated', '1'); return true;
+        })()`);
+        if (seeded && !contents.isDestroyed()) contents.reload();
+      } catch (error) {
+        console.error("miaOS profile setup failed:", error.message);
+      }
+    });
+  });
+}
+
 // Load userData .env (contains DICTATION_KEY, API keys, etc.) early — before
 // hotkey registration, which needs DICTATION_KEY before the renderer loads.
 require("dotenv").config({
@@ -986,6 +1020,14 @@ async function startApp() {
   // Phase 1: Core managers + IPC handlers before windows
   initializeCoreManagers();
   await environmentManager.init();
+  if (process.env.ECHOCRAFT_MIAOS === "1") {
+    try {
+      const inherited = require("./src/helpers/miaCredentials").loadMiaCredentials();
+      console.log("[miaOS] System credentials available:", inherited.join(", ") || "using app settings");
+    } catch {
+      console.warn("[miaOS] System credentials unavailable; local dictation remains available.");
+    }
+  }
   // After any upgrade the GPU gets one fresh attempt: clear the remembered
   // failure before the whisper pre-warm below resolves its GPU backend.
   resetWhisperGpuFailureOnUpgrade(environmentManager);
@@ -1765,6 +1807,11 @@ ipcMain.on("limit-reached", (_event, data) => {
   if (isLiveWindow(windowManager?.controlPanelWindow)) {
     windowManager.controlPanelWindow.webContents.send("limit-reached", data);
   }
+});
+ipcMain.handle("consume-settings-navigation", () => {
+  const pending = windowManager?._pendingSettingsOpen === true;
+  if (windowManager) windowManager._pendingSettingsOpen = false;
+  return pending;
 });
 
 // App event handlers

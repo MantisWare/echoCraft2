@@ -944,6 +944,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   // Settings shortcut (Cmd+, / Ctrl+,)
   onShowSettings: registerListener("show-settings", (callback) => () => callback()),
+  consumeSettingsNavigation: () => ipcRenderer.invoke("consume-settings-navigation"),
   onShowHistory: registerListener("show-history", (callback) => () => callback()),
 
   // Accessibility permission events (macOS)
