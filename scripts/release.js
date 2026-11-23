@@ -35,6 +35,7 @@ const { removeStaleMacSigningKeychains } = require("./release/macKeychain");
 const { ensureRemoteFolder, publishPlatform } = require("./release/publisher");
 const { createUploadIndicator } = require("./release/progress");
 const { formatCommandFailure, npmSpawnOptions } = require("./release/spawn");
+const { writeKeychainCaBundle } = require("./release/macosTls");
 
 const PROJECT_ROOT = path.resolve(__dirname, "..");
 const OUTPUT_DIR = path.join(PROJECT_ROOT, "dist");
@@ -197,6 +198,16 @@ async function release(argv = process.argv, runtime = process) {
 }
 
 if (require.main === module) {
+  const caFile = writeKeychainCaBundle();
+  if (caFile) {
+    log("Trusting macOS keychain certificates for HTTPS");
+    const relaunched = spawnSync(process.execPath, process.argv.slice(1), {
+      env: { ...process.env, NODE_EXTRA_CA_CERTS: caFile },
+      stdio: "inherit",
+    });
+    process.exit(relaunched.status ?? 1);
+  }
+
   release().catch((error) => {
     fail(error.message);
   });
