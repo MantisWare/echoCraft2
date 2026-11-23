@@ -33,6 +33,10 @@ test("getGpuSignature resolves the backend the way _doStart does", () => {
   assert.equal(getGpuSignature({ useVulkan: true }), "gpu:vulkan:default");
   // CUDA wins when both flags are set, mirroring _doStart's resolution.
   assert.equal(getGpuSignature({ useCuda: true, useVulkan: true }), "gpu:cuda");
+  // Darwin's default server still uses Metal. noGpu must be a different
+  // signature or start()'s guard treats --no-gpu as the server it already has.
+  assert.equal(getGpuSignature({ noGpu: true }), "gpu:cpu:nogpu");
+  assert.notEqual(getGpuSignature({ noGpu: true }), getGpuSignature({}));
 });
 
 test("getGpuSignature carries the resolved Vulkan device pin", () => {

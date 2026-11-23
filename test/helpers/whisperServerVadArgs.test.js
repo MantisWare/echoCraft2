@@ -60,6 +60,27 @@ test("buildWhisperServerArgs omits VAD flags when vadModelPath is missing", () =
   assert.equal(args.includes("--vad-model"), false);
 });
 
+test("buildWhisperServerArgs disables the GPU when noGpu is set", () => {
+  const args = WhisperServerManager.buildWhisperServerArgs({
+    modelPath: "/tmp/model.bin",
+    port: 8180,
+    language: "auto",
+    noGpu: true,
+  });
+
+  assert.equal(args.includes("--no-gpu"), true);
+});
+
+test("buildWhisperServerArgs leaves the GPU on by default", () => {
+  const args = WhisperServerManager.buildWhisperServerArgs({
+    modelPath: "/tmp/model.bin",
+    port: 8180,
+    language: "auto",
+  });
+
+  assert.equal(args.includes("--no-gpu"), false);
+});
+
 test("buildWhisperServerArgs preserves segment timestamp decoding", () => {
   const args = WhisperServerManager.buildWhisperServerArgs({
     modelPath: "/tmp/model.bin",

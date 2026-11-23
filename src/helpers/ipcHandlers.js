@@ -661,6 +661,13 @@ class IPCHandlers {
         this._recordWhisperGpuFailure("vulkan");
         broadcastToWindows("gpu-fallback-notification", {});
       });
+      // Metal lives in the default darwin binary. Remember the failure so the
+      // next launch starts with --no-gpu instead of paying for another wedged
+      // Metal load. Retry GPU clears WHISPER_GPU_FAILED and tries Metal again.
+      this.whisperManager.serverManager.on("metal-fallback", () => {
+        this._recordWhisperGpuFailure("metal");
+        broadcastToWindows("gpu-fallback-notification", {});
+      });
       // Persist the discrete-GPU pin so later launches spawn pinned directly
       // instead of paying a second Vulkan cold start. See #1606.
       this.whisperManager.serverManager.on("vulkan-device-pinned", ({ index }) => {

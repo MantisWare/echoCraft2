@@ -29,6 +29,13 @@ const HEALTH_CHECK_INTERVAL_MS = 5000;
 const HEALTH_CHECK_TIMEOUT_MS = 2000;
 const PROCESS_EXIT_WAIT_MS = 2000;
 const PROCESS_EXIT_POLL_INTERVAL_MS = 50;
+// A Metal/CUDA command-buffer failure returns this 500 in well under a second
+// and then sticks: the process stays up, /health stays ok, and every later
+// request fails the same way. A real decode error on a clip takes longer, so
+// only the fast rejection is treated as a dead GPU backend. See the sleep/wake
+// failure on darwin, where ggml logs "command buffer 0 failed with status 5".
+const GPU_AUDIO_FAILURE_MAX_ELAPSED_MS = 5000;
+const STDERR_TAIL_LIMIT = 4000;
 const DEFAULT_WHISPER_THREADS = 4;
 const MAX_AUTO_WHISPER_THREADS = 12;
 const MAX_MANUAL_WHISPER_THREADS = 64;
@@ -155,9 +162,15 @@ function getGpuSignature(options = {}) {
   const useCuda = options.useCuda === true;
   const useVulkan = !useCuda && options.useVulkan === true;
   if (useCuda) return "gpu:cuda";
-  if (!useVulkan) return "gpu:cpu";
-  const deviceIndex = resolveVulkanDeviceIndex(options);
-  return `gpu:vulkan:${Number.isInteger(deviceIndex) && deviceIndex >= 0 ? deviceIndex : "default"}`;
+  if (useVulkan) {
+    const deviceIndex = resolveVulkanDeviceIndex(options);
+    return `gpu:vulkan:${Number.isInteger(deviceIndex) && deviceIndex >= 0 ? deviceIndex : "default"}`;
+  }
+  // On darwin the default binary uses Metal until --no-gpu. That has to be its
+  // own signature: start()'s guard would otherwise keep the broken Metal server
+  // when asked to relaunch with the GPU off.
+  if (options.noGpu === true) return "gpu:cpu:nogpu";
+  return "gpu:cpu";
 }
 
 function buildWhisperServerArgs({
@@ -169,8 +182,11 @@ function buildWhisperServerArgs({
   vadModelPath = null,
   vadConfig,
   gpuDeviceIndex = null,
+  noGpu = false,
 }) {
   const args = ["--model", modelPath, "--host", "127.0.0.1", "--port", String(port)];
+
+  if (noGpu) args.push("--no-gpu");
 
   if (threads) args.push("--threads", String(threads));
 
@@ -269,6 +285,23 @@ function shouldFallbackToCpuAfterRequestError({
   );
 }
 
+function shouldFallbackFromGpuAudioFailure({
+  message,
+  elapsedMs,
+  isRemote,
+  stopRequested,
+  usingGpu,
+  generationChanged,
+} = {}) {
+  if (isRemote || stopRequested || generationChanged || !usingGpu) return false;
+  if (typeof message !== "string" || !message.includes("failed to process audio")) return false;
+  return (
+    typeof elapsedMs === "number" &&
+    elapsedMs >= 0 &&
+    elapsedMs < GPU_AUDIO_FAILURE_MAX_ELAPSED_MS
+  );
+}
+
 function shouldRetryAfterServerReplaced({
   isConnectionError,
   isRemote,
@@ -297,6 +330,8 @@ class WhisperServerManager extends EventEmitter {
     this.canConvert = false;
     this.useCuda = false;
     this.useVulkan = false;
+    this.noGpu = false;
+    this._stderrTail = "";
     this.startGeneration = 0;
     this._stopRequested = false;
     this.vadSignature = "vad:off";
@@ -559,6 +594,8 @@ class WhisperServerManager extends EventEmitter {
     this.modelPath = modelPath;
     this.useCuda = usingCuda;
     this.useVulkan = usingVulkan;
+    this.noGpu = options.noGpu === true;
+    this._stderrTail = "";
 
     // Pin Vulkan to a specific device (see resolveVulkanDeviceIndex; the
     // one-shot restart below passes the explicit index).
@@ -572,6 +609,7 @@ class WhisperServerManager extends EventEmitter {
       useCuda: usingCuda,
       useVulkan: usingVulkan,
       vulkanDeviceIndex: vulkanDeviceIndex ?? -1,
+      noGpu: this.noGpu,
     });
 
     // Check for FFmpeg first - only use --convert flag if FFmpeg is available
@@ -606,6 +644,7 @@ class WhisperServerManager extends EventEmitter {
       vadModelPath: options.vadModelPath || null,
       vadConfig: options.vadConfig,
       gpuDeviceIndex: vulkanDeviceIndex,
+      noGpu: this.noGpu,
     });
 
     // FFmpeg is required for pre-converting audio to 16kHz mono WAV
@@ -647,8 +686,10 @@ class WhisperServerManager extends EventEmitter {
     });
 
     this.process.stderr.on("data", (data) => {
-      stderrBuffer += data.toString();
-      debugLogger.debug("whisper-server stderr", { data: data.toString().trim() });
+      const text = data.toString();
+      stderrBuffer += text;
+      this._noteStderr(text);
+      debugLogger.debug("whisper-server stderr", { data: text.trim() });
     });
 
     this.process.on("error", (error) => {
@@ -948,6 +989,23 @@ class WhisperServerManager extends EventEmitter {
       // A cancel is not a server failure: rethrow before the retry/CPU-fallback
       // logic so it never triggers a server restart.
       if (err?.name === "AbortError") throw err;
+      if (
+        shouldFallbackFromGpuAudioFailure({
+          message: err?.message,
+          elapsedMs: err?.elapsedMs,
+          isRemote: this.isRemote,
+          stopRequested: this._stopRequested,
+          usingGpu: this._usesGpuBackend(),
+          generationChanged: this.startGeneration !== generation,
+        })
+      ) {
+        return await this._fallbackToCpuAndRetry(
+          body,
+          boundary,
+          modelPath,
+          "failed to process audio"
+        );
+      }
       return await this._retryAfterRequestFailure(err, body, boundary, generation, modelPath);
     }
   }
@@ -991,7 +1049,10 @@ class WhisperServerManager extends EventEmitter {
             });
 
             if (res.statusCode !== 200) {
-              reject(new Error(`whisper-server returned status ${res.statusCode}: ${data}`));
+              const error = new Error(`whisper-server returned status ${res.statusCode}: ${data}`);
+              error.statusCode = res.statusCode;
+              error.elapsedMs = Date.now() - startTime;
+              reject(error);
               return;
             }
 
@@ -1090,16 +1151,44 @@ class WhisperServerManager extends EventEmitter {
     }
   }
 
-  async _fallbackToCpuAndRetry(body, boundary, modelPath) {
-    const backend = this.useCuda ? "cuda" : "vulkan";
-    debugLogger.warn(`${backend} whisper-server died during transcription, falling back to CPU`, {
-      port: this.port,
-      model: modelPath ? path.basename(modelPath) : null,
+  _usesGpuBackend() {
+    if (this.isRemote || this.noGpu) return false;
+    if (this.useCuda || this.useVulkan) return true;
+    // The darwin whisper-server binary uses Metal unless launched with --no-gpu.
+    return process.platform === "darwin";
+  }
+
+  _noteStderr(text) {
+    const next = `${this._stderrTail ?? ""}${text}`;
+    this._stderrTail = next.length > STDERR_TAIL_LIMIT ? next.slice(-STDERR_TAIL_LIMIT) : next;
+  }
+
+  async _fallbackToCpuAndRetry(body, boundary, modelPath, reason = "died") {
+    let backend = "metal";
+    if (this.useCuda) backend = "cuda";
+    else if (this.useVulkan) backend = "vulkan";
+
+    debugLogger.warn(
+      `${backend} whisper-server ${reason} during transcription, falling back to CPU`,
+      {
+        port: this.port,
+        model: modelPath ? path.basename(modelPath) : null,
+        stderr: this._stderrTail ?? "",
+      }
+    );
+    await this.start(modelPath, {
+      ...this.lastStartOptions,
+      useCuda: false,
+      useVulkan: false,
+      noGpu: true,
     });
-    await this.start(modelPath, { ...this.lastStartOptions, useCuda: false, useVulkan: false });
     this.gpuFallbackActive = true;
-    // Emit only once the CPU server is up — the notification tells the user CPU is in use
-    this.emit(backend === "cuda" ? "cuda-fallback" : "gpu-fallback");
+    // Emit only once the CPU server is up — the notification tells the user CPU is in use.
+    // ipcHandlers records metal-fallback so the next launch stays on CPU until Retry.
+    let event = "metal-fallback";
+    if (backend === "cuda") event = "cuda-fallback";
+    else if (backend === "vulkan") event = "gpu-fallback";
+    this.emit(event);
     return await this._postInference(body, boundary);
   }
 
@@ -1213,4 +1302,6 @@ module.exports.getVadSignature = getVadSignature;
 module.exports.getGpuSignature = getGpuSignature;
 module.exports.resolveWhisperThreads = resolveWhisperThreads;
 module.exports.shouldFallbackToCpuAfterRequestError = shouldFallbackToCpuAfterRequestError;
+module.exports.shouldFallbackFromGpuAudioFailure = shouldFallbackFromGpuAudioFailure;
 module.exports.shouldRetryAfterServerReplaced = shouldRetryAfterServerReplaced;
+module.exports.GPU_AUDIO_FAILURE_MAX_ELAPSED_MS = GPU_AUDIO_FAILURE_MAX_ELAPSED_MS;

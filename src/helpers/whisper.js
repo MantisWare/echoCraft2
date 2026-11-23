@@ -41,6 +41,24 @@ function resolveFailedGpuBackends(value) {
     .filter(Boolean);
 }
 
+function resolveWhisperGpuStartOptions({
+  env = process.env,
+  cudaDownloaded = false,
+  vulkanDownloaded = false,
+  platform = process.platform,
+} = {}) {
+  const failed = resolveFailedGpuBackends(env.WHISPER_GPU_FAILED);
+  const cudaEnabled = (env.WHISPER_CUDA_ENABLED ?? "").toLowerCase() !== "false";
+  const vulkanEnabled = (env.WHISPER_VULKAN_ENABLED ?? "").toLowerCase() !== "false";
+  const useCuda = cudaEnabled && !failed.includes("cuda") && !!cudaDownloaded;
+  const useVulkan = !useCuda && vulkanEnabled && !failed.includes("vulkan") && !!vulkanDownloaded;
+  // Darwin's bundled server uses Metal unless --no-gpu is set. Once Metal has
+  // failed, keep launching that binary on CPU until Retry clears the failure.
+  // An explicit CUDA or Vulkan pack still wins; --no-gpu would disable it too.
+  const noGpu = platform === "darwin" && failed.includes("metal") && !useCuda && !useVulkan;
+  return { useCuda, useVulkan, noGpu };
+}
+
 function shouldRewarmOnWake({
   isRemote,
   useCuda,
@@ -88,17 +106,10 @@ class WhisperManager {
   // or re-downloads, so a doomed backend isn't re-attempted — and its model
   // reload re-paid — on every launch.
   resolveGpuStartOptions() {
-    const failed = resolveFailedGpuBackends(process.env.WHISPER_GPU_FAILED);
-    const useCuda =
-      (process.env.WHISPER_CUDA_ENABLED || "").toLowerCase() !== "false" &&
-      !failed.includes("cuda") &&
-      !!this._cudaBinaryManager?.isDownloaded();
-    const useVulkan =
-      !useCuda &&
-      (process.env.WHISPER_VULKAN_ENABLED || "").toLowerCase() !== "false" &&
-      !failed.includes("vulkan") &&
-      !!this._vulkanBinaryManager?.isDownloaded();
-    return { useCuda, useVulkan };
+    return resolveWhisperGpuStartOptions({
+      cudaDownloaded: !!this._cudaBinaryManager?.isDownloaded(),
+      vulkanDownloaded: !!this._vulkanBinaryManager?.isDownloaded(),
+    });
   }
 
   // Re-resolve GPU options and reload the server in place. Used after a GPU
@@ -159,7 +170,7 @@ class WhisperManager {
 
       // Pre-warm whisper-server if local mode enabled (eliminates 2-5s cold-start delay)
       const { localTranscriptionProvider, whisperModel } = settings;
-      const { useCuda, useVulkan } = this.resolveGpuStartOptions();
+      const gpuOptions = this.resolveGpuStartOptions();
 
       if (
         localTranscriptionProvider === "whisper" &&
@@ -172,13 +183,14 @@ class WhisperManager {
           debugLogger.info("Pre-warming whisper-server", {
             model: whisperModel,
             modelPath,
-            cuda: useCuda,
-            vulkan: useVulkan,
+            cuda: gpuOptions.useCuda,
+            vulkan: gpuOptions.useVulkan,
+            noGpu: gpuOptions.noGpu,
           });
 
           try {
             const serverStartTime = Date.now();
-            await this.serverManager.start(modelPath, { useCuda, useVulkan });
+            await this.serverManager.start(modelPath, gpuOptions);
             this.currentServerModel = whisperModel;
 
             debugLogger.info("whisper-server pre-warmed successfully", {
@@ -943,3 +955,4 @@ class WhisperManager {
 module.exports = WhisperManager;
 module.exports.shouldRewarmOnWake = shouldRewarmOnWake;
 module.exports.resolveFailedGpuBackends = resolveFailedGpuBackends;
+module.exports.resolveWhisperGpuStartOptions = resolveWhisperGpuStartOptions;

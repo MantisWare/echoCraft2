@@ -5,7 +5,9 @@ const http = require("node:http");
 const WhisperServerManager = require("../../src/helpers/whisperServer");
 const {
   shouldFallbackToCpuAfterRequestError,
+  shouldFallbackFromGpuAudioFailure,
   shouldRetryAfterServerReplaced,
+  GPU_AUDIO_FAILURE_MAX_ELAPSED_MS,
 } = require("../../src/helpers/whisperServer");
 
 const base = {
@@ -43,6 +45,59 @@ test("skips when another start replaced the server mid-request", () => {
 
 test("skips when the server process is still alive (request refused, not a crash)", () => {
   assert.equal(shouldFallbackToCpuAfterRequestError({ ...base, processExited: false }), false);
+});
+
+const audioFailure = {
+  message: 'whisper-server returned status 500: {"error":"failed to process audio"}',
+  elapsedMs: 40,
+  isRemote: false,
+  stopRequested: false,
+  usingGpu: true,
+  generationChanged: false,
+};
+
+test("falls back when a live GPU server rejects audio immediately", () => {
+  assert.equal(shouldFallbackFromGpuAudioFailure(audioFailure), true);
+  assert.ok(GPU_AUDIO_FAILURE_MAX_ELAPSED_MS > audioFailure.elapsedMs);
+});
+
+test("keeps a slow audio-processing failure on the GPU server", () => {
+  assert.equal(
+    shouldFallbackFromGpuAudioFailure({
+      ...audioFailure,
+      elapsedMs: GPU_AUDIO_FAILURE_MAX_ELAPSED_MS,
+    }),
+    false
+  );
+});
+
+test("does not treat an unrelated server error as a GPU audio failure", () => {
+  assert.equal(
+    shouldFallbackFromGpuAudioFailure({
+      ...audioFailure,
+      message: "whisper-server returned status 500: {\"error\":\"busy\"}",
+    }),
+    false
+  );
+});
+
+test("does not restart a server that is already off the GPU", () => {
+  assert.equal(shouldFallbackFromGpuAudioFailure({ ...audioFailure, usingGpu: false }), false);
+});
+
+test("does not restart a remote server after an audio-processing failure", () => {
+  assert.equal(shouldFallbackFromGpuAudioFailure({ ...audioFailure, isRemote: true }), false);
+});
+
+test("does not restart after an intentional stop", () => {
+  assert.equal(shouldFallbackFromGpuAudioFailure({ ...audioFailure, stopRequested: true }), false);
+});
+
+test("does not restart when another start already replaced the server", () => {
+  assert.equal(
+    shouldFallbackFromGpuAudioFailure({ ...audioFailure, generationChanged: true }),
+    false
+  );
 });
 
 const replacedBase = {
@@ -191,6 +246,84 @@ test("falls back to CPU and emits gpu-fallback when a Vulkan server dies mid-req
   assert.equal(startCalls.length, 1);
   assert.equal(startCalls[0].options.useCuda, false);
   assert.equal(startCalls[0].options.useVulkan, false);
+});
+
+test("restarts on CPU when a live GPU server returns failed-to-process-audio immediately", async (t) => {
+  let requestCount = 0;
+
+  const { server, port } = await startServer((req, res) => {
+    requestCount += 1;
+    if (requestCount === 1) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "failed to process audio" }));
+      return;
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ text: "hello" }));
+  });
+  t.after(() => server.close());
+
+  const manager = createManager(port, { useCuda: true });
+  const startCalls = [];
+  manager.start = async (modelPath, options) => {
+    startCalls.push({ modelPath, options });
+    manager.useCuda = false;
+    manager.noGpu = true;
+    manager.ready = true;
+    manager.process = {};
+  };
+
+  const events = [];
+  manager.on("cuda-fallback", () => events.push("cuda-fallback"));
+  manager.on("metal-fallback", () => events.push("metal-fallback"));
+
+  const result = await manager.transcribe(Buffer.from("audio"));
+
+  assert.equal(result.text, "hello");
+  assert.equal(requestCount, 2);
+  assert.deepEqual(events, ["cuda-fallback"]);
+  assert.equal(startCalls.length, 1);
+  assert.equal(startCalls[0].options.noGpu, true);
+  assert.equal(startCalls[0].options.useCuda, false);
+  assert.equal(startCalls[0].options.useVulkan, false);
+  assert.equal(manager.gpuFallbackActive, true);
+});
+
+test("keeps a Metal server's fast audio failure on the CPU retry path", async (t) => {
+  let requestCount = 0;
+
+  const { server, port } = await startServer((req, res) => {
+    requestCount += 1;
+    if (requestCount === 1) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "failed to process audio" }));
+      return;
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ text: "from cpu" }));
+  });
+  t.after(() => server.close());
+
+  const manager = createManager(port, { useCuda: false, useVulkan: false });
+  manager._usesGpuBackend = () => true;
+  const startCalls = [];
+  manager.start = async (_modelPath, options) => {
+    startCalls.push(options);
+    manager.noGpu = true;
+    manager.ready = true;
+    manager.process = {};
+  };
+
+  const events = [];
+  manager.on("metal-fallback", () => events.push("metal-fallback"));
+  manager.on("gpu-fallback", () => events.push("gpu-fallback"));
+
+  const result = await manager.transcribe(Buffer.from("audio"));
+
+  assert.equal(result.text, "from cpu");
+  assert.deepEqual(events, ["metal-fallback"]);
+  assert.equal(startCalls[0].noGpu, true);
+  assert.equal(manager.gpuFallbackActive, true);
 });
 
 test("falls back to CPU when a peer's replacement is another doomed CUDA server", async (t) => {
